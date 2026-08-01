@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="additions.css" />
 </head>
 <body>
   <div class="grain"></div>
@@ -17,6 +18,7 @@
     <button class="admin-trigger" id="adminOpen"><span class="lock">⌁</span> ADMIN</button>
   </header>
 
+  <div class="signal-bar"><span>✦ NYA VÄRLDAR VARJE VECKA</span><span>HTML5-SPEL · INGA NEDLADDNINGAR</span><span>✦ GJORT AV OBEROENDE SKAPARE</span><span>HTML5-SPEL · INGA NEDLADDNINGAR</span></div>
   <main id="top">
     <section class="hero">
       <div class="hero-copy"><p class="eyebrow"><span></span> OBUNDEN SPELKULTUR / 2024—</p>
@@ -32,6 +34,14 @@
       <div class="scroll-note">SCROLLA FÖR ATT UPPTÄCKA <span>↓</span></div>
     </section>
 
+    <section class="featured" id="featured">
+      <div class="featured-top"><p class="eyebrow"><span></span> VECKANS UTVALDA</p><p>01 / 01 <button class="sound-toggle" id="soundToggle" aria-label="Växla ambient ljud">◒ LJUDBILD: AV</button></p></div>
+      <article class="featured-game" id="featuredGame" role="button" tabindex="0" aria-label="Spela veckans utvalda spel">
+        <div class="featured-world"><div class="world-moon"></div><div class="world-hill hill-a"></div><div class="world-hill hill-b"></div><div class="world-path"></div><div class="world-person"><i></i></div><span class="world-star one">✦</span><span class="world-star two">✦</span><span class="world-star three">+</span><p>TA EN<br>OMVÄG</p></div>
+        <div class="featured-copy"><p class="eyebrow"><span></span> ÄVENTYR · 12 MIN</p><h2>Moss &amp;<br><em>Måne</em></h2><p>En ömsint expedition genom en trädgård som glömt var natten slutar.</p><button class="play-button">SPELA NU <b>→</b></button><small>SKAPAT AV EKO STUDIO · 2024</small></div>
+      </article>
+    </section>
+
     <section class="discover" id="upptack">
       <div class="section-head"><div><p class="eyebrow"><span></span> NYLIGEN ARKIVERADE</p><h2>Spela något <em>nu.</em></h2></div><div class="filter-wrap"><label for="search">SÖK I ARKIVET</label><input id="search" type="search" placeholder="Titel, tagg eller skapare..." /></div></div>
       <div class="game-grid" id="gameGrid"></div>
@@ -42,6 +52,7 @@
 
     <section class="manifesto" id="om"><div class="star">✦</div><h2>Spel är <em>platser</em> vi<br>lånar en stund.</h2><p>Vi tror på korta pauser, konstiga idéer och spel som görs för att delas. Spelarkivet är gratis att utforska — utan brus.</p><div class="stats"><div><b id="gameCount">04</b><span>SPEL I ARKIVET</span></div><div><b>100%</b><span>GRATIS ATT SPELA</span></div><div><b>∞</b><span>NYFIKENHET</span></div></div></section>
   </main>
+  <section class="creator-callout"><div><p class="eyebrow"><span></span> FÖR SKAPARE</p><h2>Har du byggt en<br><em>liten värld?</em></h2></div><div><p>Spelarkivet letar alltid efter egensinniga spel att ge en plats. Inga annonser. Bara spel och människor som vill spela dem.</p><button class="button primary" id="creatorUpload">LÄMNA IN ETT SPEL →</button></div></section>
   <footer><a class="brand" href="#top"><span class="brand-mark">S</span><span>SPELARKIVET</span></a><p>ETT LITET HÖRN AV INTERNET · 2024</p><a href="#top">TILL TOPPEN ↑</a></footer>
 
   <dialog id="adminDialog"><div class="dialog-shell" id="loginView"><button class="close" data-close>×</button><p class="eyebrow"><span></span> BEHÖRIG ÅTKOMST</p><h2>Adminportal</h2><p>Logga in för att lägga till spel i arkivet.</p><form id="loginForm"><label for="pass">ADMIN-KOD</label><input id="pass" type="password" autocomplete="current-password" placeholder="Ange kod" required><p class="error" id="loginError"></p><button class="button primary" type="submit">LÅS UPP →</button></form></div>
