@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spelarkivet — Spel för alla</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="grain"></div>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Spelarkivet, startsida"><span class="brand-mark">S</span><span>SPELARKIVET</span></a>
+    <nav aria-label="Huvudmeny"><a href="#upptack">Upptäck</a><a href="#kategorier">Kategorier</a><a href="#om">Om arkivet</a></nav>
+    <button class="admin-trigger" id="adminOpen"><span class="lock">⌁</span> ADMIN</button>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy"><p class="eyebrow"><span></span> OBUNDEN SPELKULTUR / 2024—</p>
+        <h1>Ett hem för<br><em>små stora</em> spel.</h1>
+        <p class="intro">Spelarkivet är en handplockad samling webspel från oberoende skapare. Öppna, spela och hitta något oväntat.</p>
+        <div class="hero-actions"><a class="button primary" href="#upptack">UTFORSKA SPELEN <b>↓</b></a><button class="text-button" id="openHow">Hur fungerar det? <b>↗</b></button></div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="sun"></div><div class="pixel p1"></div><div class="pixel p2"></div><div class="pixel p3"></div><div class="pixel p4"></div>
+        <div class="planet"><i></i><i></i><i></i><i></i><i></i></div><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+        <p>PLAY<br>WITH<br>CARE</p>
+      </div>
+      <div class="scroll-note">SCROLLA FÖR ATT UPPTÄCKA <span>↓</span></div>
+    </section>
+
+    <section class="discover" id="upptack">
+      <div class="section-head"><div><p class="eyebrow"><span></span> NYLIGEN ARKIVERADE</p><h2>Spela något <em>nu.</em></h2></div><div class="filter-wrap"><label for="search">SÖK I ARKIVET</label><input id="search" type="search" placeholder="Titel, tagg eller skapare..." /></div></div>
+      <div class="game-grid" id="gameGrid"></div>
+      <p class="empty" id="emptyState">Inga spel matchar din sökning.</p>
+    </section>
+
+    <section class="categories" id="kategorier"><p class="eyebrow"><span></span> VÄLJ VÄG</p><div class="category-list"><button data-filter="Äventyr"><b>01</b><span>ÄVENTYR</span><i>→</i></button><button data-filter="Pussel"><b>02</b><span>PUSSEL</span><i>→</i></button><button data-filter="Action"><b>03</b><span>ACTION</span><i>→</i></button><button data-filter="Avkopplande"><b>04</b><span>AVKOPPLANDE</span><i>→</i></button></div></section>
+
+    <section class="manifesto" id="om"><div class="star">✦</div><h2>Spel är <em>platser</em> vi<br>lånar en stund.</h2><p>Vi tror på korta pauser, konstiga idéer och spel som görs för att delas. Spelarkivet är gratis att utforska — utan brus.</p><div class="stats"><div><b id="gameCount">04</b><span>SPEL I ARKIVET</span></div><div><b>100%</b><span>GRATIS ATT SPELA</span></div><div><b>∞</b><span>NYFIKENHET</span></div></div></section>
+  </main>
+  <footer><a class="brand" href="#top"><span class="brand-mark">S</span><span>SPELARKIVET</span></a><p>ETT LITET HÖRN AV INTERNET · 2024</p><a href="#top">TILL TOPPEN ↑</a></footer>
+
+  <dialog id="adminDialog"><div class="dialog-shell" id="loginView"><button class="close" data-close>×</button><p class="eyebrow"><span></span> BEHÖRIG ÅTKOMST</p><h2>Adminportal</h2><p>Logga in för att lägga till spel i arkivet.</p><form id="loginForm"><label for="pass">ADMIN-KOD</label><input id="pass" type="password" autocomplete="current-password" placeholder="Ange kod" required><p class="error" id="loginError"></p><button class="button primary" type="submit">LÅS UPP →</button></form></div>
+    <div class="dialog-shell upload-view" id="uploadView" hidden><button class="close" data-close>×</button><div class="portal-head"><div><p class="eyebrow"><span></span> ADMINPORTAL</p><h2>Lägg till spel</h2></div><button class="logout" id="logout">LOGGA UT</button></div><form id="uploadForm"><div class="form-row"><label>TITEL<input id="title" required placeholder="Spelets titel"></label><label>SKAPARE<input id="creator" required placeholder="Ditt namn / studio"></label></div><div class="form-row"><label>KATEGORI<select id="category"><option>Äventyr</option><option>Pussel</option><option>Action</option><option>Avkopplande</option></select></label><label>ACCENTFÄRG<input id="color" type="color" value="#ff633d"></label></div><label>KORT BESKRIVNING<textarea id="description" maxlength="130" required placeholder="Vad är det här för slags spel?"></textarea></label><label class="drop-zone" id="dropZone"><input id="file" type="file" accept=".html,.htm,.zip" required><span class="upload-icon">↑</span><strong>Släpp spelfilen här</strong><small>HTML eller ZIP · max 50 MB</small><em id="fileName">ELLER VÄLJ FIL</em></label><p class="note">Filer sparas lokalt i den här webbläsaren. För en riktig publik uppladdning behövs en säker server och fil-lagring.</p><button class="button primary" type="submit">ARKIVERA SPEL →</button></form></div></dialog>
+  <dialog id="howDialog"><div class="dialog-shell how"><button class="close" data-close>×</button><p class="eyebrow"><span></span> SÅ HÄR FUNKAR DET</p><h2>Öppna. Spela.<br><em>Återvänd.</em></h2><p>Välj ett spel i arkivet och tryck på Spela. Skapare kan begära adminåtkomst för att ladda upp egna HTML-spel.</p><button class="button primary" data-close>FÖRSTÅTT</button></div></dialog>
+  <script src="app.js"></script>
+</body></html>
