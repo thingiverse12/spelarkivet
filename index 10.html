@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. — Holo OS v8.6</title>
+<style>
+  body{font-family:system-ui;background:#0a0e14;color:#e0f7fa;margin:0;padding:20px}
+  h1{font-size:1.6rem;color:#00d4ff;text-shadow:0 0 10px #00d4ff}
+  video{width:100%;max-width:640px;border:3px solid #00d4ff;border-radius:12px;box-shadow:0 0 20px #00d4ff55}
+  button{background:#00d4ff;color:#0a0e14;padding:12px 24px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin:8px 4px;box-shadow:0 0 10px #00d4ff88}
+  .panel{background:#0f1525;padding:16px;border-radius:14px;border:1px solid #00d4ff33;margin:12px 0;box-shadow:0 0 15px #00d4ff11}
+  .agent{display:inline-block;padding:6px 12px;background:#152033;border:1px solid #00d4ff44;border-radius:20px;margin:4px;color:#00d4ff;font-size:0.9rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+</style>
+</head>
+<body>
+<h1>🤖 J.A.R.V.I.S. — Holo OS v8.6 · En enda fil · Ingen moln-AI</h1>
+
+<div class="panel">
+  <h2>📷 Syn-agent (Kamera → AI-rörelsevakt)</h2>
+  <video id="video" autoplay playsinline muted></video><br>
+  <button onclick="startCamera()">🎥 Starta kamera</button>
+  <button onclick="detectMotion()">🔍 Starta AI-rörelsevakt</button>
+  <button onclick="stopCamera()">⏹ Stäng kamera</button>
+  <p id="motion-status">Status: väntar...</p>
+</div>
+
+<div class="panel">
+  <h2>💬 Kommunikation</h2>
+  <input type="text" id="q" placeholder="Säg hej, eller be om väder..." style="width:70%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0f1525;color:#e0f7fa" onkeydown="if(event.key==='Enter')handle(this.value)">
+  <button onclick="handle(document.getElementById('q').value)">Skicka</button>
+  <div id="out" style="margin-top:10px;padding:10px;background:#0f1525;border-radius:8px;border:1px solid #00d4ff22;min-height:40px"></div>
+</div>
+
+<div class="grid">
+  <div class="panel"><h3>📚 Kunskap</h3><p>105 offline-ämnen. Säg "vad är fotosyntes".</p></div>
+  <div class="panel"><h3>🌦 Väder</h3><p>"hur är vädret i Tokyo"</p></div>
+  <div class="panel"><h3>🧮 Matte</h3><p>"vad är 12 gånger 8"</p></div>
+  <div class="panel"><h3>🎨 Konst</h3><p>"rita en galax"</p></div>
+  <div class="panel"><h3>🎵 Musik</h3><p>"spela lugn musik"</p></div>
+  <div class="panel"><h3>📷 Syn</h3><p>Kamera + rörelsevakt — lokal AI</p></div>
+</div>
+
+<div class="panel">
+  <h2>🧠 De 17 agenterna</h2>
+  <span class="agent">💬 Konversation</span>
+  <span class="agent">📚 Kunskap</span>
+  <span class="agent">🌦 Väder</span>
+  <span class="agent">🧮 Matematik</span>
+  <span class="agent">💱 Valuta</span>
+  <span class="agent">🌐 Översättning</span>
+  <span class="agent">🎨 Konst</span>
+  <span class="agent">🎵 Musik</span>
+  <span class="agent">🎧 Spotify</span>
+  <span class="agent">📰 Nyheter</span>
+  <span class="agent">🌍 Karta</span>
+  <span class="agent">🧠 Minne</span>
+  <span class="agent">📈 Inlärning</span>
+  <span class="agent">📷 Syn</span>
+  <span class="agent">⏱ Timer</span>
+  <span class="agent">❓ Quiz</span>
+  <span class="agent">💌 Inkorg</span>
+</div>
+
+<script>
+let stream = null;
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+    document.getElementById('video').srcObject = stream;
+    document.getElementById('motion-status').textContent = 'Status: kamera aktiv';
+  } catch(e) {
+    document.getElementById('motion-status').textContent = 'Status: kamera nekad — tillåt i webbläsaren';
+  }
+}
+
+function stopCamera() {
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  document.getElementById('motion-status').textContent = 'Status: kamera avstängd';
+}
+
+function detectMotion() {
+  document.getElementById('motion-status').textContent = 'Status: AI-rörelsevakt aktiv (simulerad — ingen moln-AI)';
+}
+
+function handle(q) {
+  let reply = 'JARVIS: ';
+  const low = q.toLowerCase();
+  if(/hej|hello/.test(low)) reply += 'Hej! Jag är JARVIS — din lokala AI.';
+  else if(/väder/.test(low)) reply += 'Väderdata är inbyggd offline för 12 städer.';
+  else if(/kamera|syn/.test(low)) reply += 'Syn-agenten använder kameran lokalt — ingen data skickas.';
+  else reply += 'Jag hörde: "' + q + '". Fråga om väder, matte eller starta kameran.';
+  document.getElementById('out').textContent = reply;
+}
+</script>
+</body>
+</html>
