@@ -1,12 +1,9 @@
 # Katt Runner — static site deploy config
-# https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
-  # Pure static HTML/CSS/JS game — no build step
   publish = "."
   command = "echo 'Static site — nothing to build'"
 
-# Security + caching headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -17,7 +14,6 @@
 [[headers]]
   for = "/assets/*"
   [headers.values]
-    # Long cache for game assets (URLs use ?v= cache-busting)
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
@@ -26,7 +22,6 @@
     Cache-Control = "public, max-age=0, must-revalidate"
 
 [dev]
-  # Local: netlify dev  (or: python3 -m http.server 8080)
   publish = "."
   framework = "#static"
   port = 8888
@@ -38,15 +33,3 @@
 
 [context.deploy-preview]
   command = "echo 'Katt Runner deploy preview'"
-
-# Hide Netlify's "Deploy Preview" floating toolbar/banner on draft deploys
-[build.processing]
-  skip_processing = false
-[build.processing.html]
-  pretty_urls = false
-
-# Netlify injects a preview badge on Deploy Previews unless disabled in UI:
-# Site configuration → Build & deploy → Post processing → Deploy Preview branding
-# We also set this env-style flag where supported via netlify.toml contexts:
-[context.deploy-preview.environment]
-  NETLIFY_SHOW_DEPLOY_PREVIEW_BANNER = "false"
