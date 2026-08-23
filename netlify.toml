@@ -1,0 +1,35 @@
+# Katt Runner — static site deploy config
+
+[build]
+  publish = "."
+  command = "echo 'Static site — nothing to build'"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[dev]
+  publish = "."
+  framework = "#static"
+  port = 8888
+  targetPort = 8080
+  autoLaunch = false
+
+[context.production]
+  command = "echo 'Katt Runner production deploy'"
+
+[context.deploy-preview]
+  command = "echo 'Katt Runner deploy preview'"
