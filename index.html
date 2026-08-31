@@ -2,1823 +2,1481 @@
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Katt Runner 🐱</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. — gratis AI-assistent 🤖</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #040811;
+    --panel: rgba(8, 22, 38, 0.78);
+    --panel-2: rgba(10, 28, 48, 0.9);
+    --line: rgba(80, 200, 255, 0.22);
+    --line-strong: rgba(90, 214, 255, 0.55);
+    --txt: #d7f3ff;
+    --dim: #7fb4cc;
+    --cyan: #3fd0ff;
+    --cyan-2: #9be8ff;
+    --gold: #ffd24a;
+    --red: #ff5470;
+    --ok: #59ffa0;
+    --mono: 'Share Tech Mono', monospace;
+    --head: 'Orbitron', sans-serif;
+    --body: 'Rajdhani', system-ui, sans-serif;
+  }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body {
-    width: 100%;
-    height: 100%;
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: var(--body);
     overflow: hidden;
-    background: #0a1020;
-    font-family: 'Press Start 2P', system-ui, monospace;
-    color: #fff;
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  /* canvas sits under UI */
-  #wrap {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #0a1020;
-  }
-
-  canvas {
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    border-radius: 0;
-    box-shadow: none;
-    background: #000;
-    cursor: pointer;
-  }
-
-  #ui {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 20;
-  }
-
-  .hidden { display: none !important; }
-
-  /* ══════════════ BRAWL-STYLE LOBBY ══════════════ */
-  #menuPanel {
-    position: absolute;
-    inset: 0;
-    pointer-events: auto;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    background:
-      radial-gradient(ellipse 90% 70% at 50% 40%, #ffd24a 0%, #f0a020 42%, #2a8f3a 78%, #0d3a18 100%);
   }
 
-  #menuPanel::before {
+  /* ─── bakgrund: rutnät + scanlines + vignett ─── */
+  body::before {
     content: '';
-    position: absolute;
-    inset: 0;
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background:
-      radial-gradient(circle at 20% 80%, rgba(255,255,255,0.12), transparent 40%),
-      radial-gradient(circle at 80% 20%, rgba(255,220,80,0.25), transparent 45%);
-    pointer-events: none;
+      radial-gradient(ellipse 70% 55% at 50% -10%, rgba(35, 120, 190, 0.22), transparent 60%),
+      linear-gradient(rgba(60, 180, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(60, 180, 255, 0.05) 1px, transparent 1px);
+    background-size: 100% 100%, 44px 44px, 44px 44px;
   }
-
-  /* soft vignette */
-  #menuPanel::after {
+  body::after {
     content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.28) 100%);
-    pointer-events: none;
+    position: fixed; inset: 0; z-index: 60; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
   }
 
-  .lobby-top {
+  .vignette {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  /* ═══ UPPSTARTSSEKVENS ═══ */
+  #boot {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.5s ease;
+    cursor: pointer;
+  }
+  #boot.done { opacity: 0; pointer-events: none; }
+  #bootInner {
+    width: min(680px, 92vw);
+    font-family: var(--mono);
+    font-size: clamp(12px, 2.4vw, 15px);
+    color: var(--cyan-2);
+    text-shadow: 0 0 8px rgba(63, 208, 255, 0.5);
+  }
+  #bootInner .boot-title {
+    font-family: var(--head);
+    font-size: clamp(20px, 5vw, 34px);
+    letter-spacing: 0.35em;
+    color: #fff;
+    margin-bottom: 18px;
+    text-shadow: 0 0 22px rgba(63, 208, 255, 0.8);
+  }
+  #bootLog div { white-space: pre-wrap; line-height: 1.55; }
+  #bootLog .ok { color: var(--ok); }
+  #bootLog .warn { color: var(--gold); }
+  .caret::after { content: '▊'; animation: blink 0.8s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ═══ REAKTORN ═══ */
+  .reactor {
     position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 10px 12px 0;
-    gap: 8px;
+    width: 58px; height: 58px;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 0 10px rgba(63, 208, 255, 0.45));
   }
+  .reactor .r-core {
+    position: absolute; inset: 26%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #cdf3ff 28%, #4fc8ff 62%, rgba(30, 110, 180, 0.4) 100%);
+    box-shadow: 0 0 14px 3px rgba(120, 225, 255, 0.9), 0 0 34px 8px rgba(63, 208, 255, 0.35);
+    animation: corePulse 2.6s ease-in-out infinite;
+  }
+  @keyframes corePulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.09); filter: brightness(1.25); }
+  }
+  .reactor .r-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+  }
+  .reactor .r1 {
+    border: 2px solid rgba(110, 220, 255, 0.75);
+    border-top-color: transparent; border-bottom-color: transparent;
+    animation: spin 7s linear infinite;
+  }
+  .reactor .r2 {
+    inset: 8%;
+    border: 1.5px dashed rgba(110, 220, 255, 0.5);
+    animation: spin 12s linear infinite reverse;
+  }
+  .reactor .r3 {
+    inset: -9%;
+    background: repeating-conic-gradient(rgba(95, 210, 255, 0.5) 0deg 4deg, transparent 4deg 30deg);
+    -webkit-mask: radial-gradient(circle, transparent 58%, #000 59%, #000 66%, transparent 67%);
+            mask: radial-gradient(circle, transparent 58%, #000 59%, #000 66%, transparent 67%);
+    animation: spin 20s linear infinite;
+    opacity: 0.8;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .reactor.thinking .r-core { animation-duration: 0.9s; }
+  .reactor.thinking .r1 { animation-duration: 1.6s; }
+  .reactor.thinking .r2 { animation-duration: 2.4s; animation-direction: normal; }
 
-  .lobby-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: linear-gradient(180deg, #3a3a55 0%, #1e1e32 100%);
-    border: 3px solid #1a1a28;
-    border-radius: 14px;
-    padding: 6px 10px 6px 6px;
-    box-shadow: 0 4px 0 #0c0c14, 0 6px 14px rgba(0,0,0,0.35);
-    color: #fff;
-    font-size: 10px;
-    text-shadow: 1px 1px 0 #000;
-  }
+  .reactor.mini { width: 26px; height: 26px; }
 
-  .lobby-pill .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: linear-gradient(180deg, #6a9ad8, #3a6098);
-    border: 2px solid #ffd24a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    image-rendering: pixelated;
-  }
-  .lobby-pill .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    image-rendering: pixelated;
-  }
-
-  .lobby-pill .meta { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
-  .lobby-pill .name-tag { font-size: 9px; color: #ffe066; }
-  .lobby-pill .trophy-row {
-    display: flex; align-items: center; gap: 4px;
-    background: rgba(0,0,0,0.35);
-    border-radius: 8px;
-    padding: 2px 8px;
-    font-size: 9px;
-    color: #fff;
-  }
-
-  .res-row {
-    display: flex;
-    gap: 6px;
+  /* ═══ SIDHUVUD ═══ */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px 10px;
+    background: linear-gradient(180deg, rgba(6, 16, 30, 0.95), rgba(6, 16, 30, 0.6));
+    border-bottom: 1px solid var(--line);
     flex-wrap: wrap;
-    justify-content: flex-end;
   }
-
-  .res-chip {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: linear-gradient(180deg, #4a3560 0%, #2a1a38 100%);
-    border: 3px solid #1a1020;
-    border-radius: 999px;
-    padding: 5px 10px 5px 7px;
-    box-shadow: 0 3px 0 #0c0810;
+  .brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+  .brand h1 {
+    font-family: var(--head);
+    font-size: clamp(15px, 3vw, 21px);
+    letter-spacing: 0.28em;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(63, 208, 255, 0.65);
+    white-space: nowrap;
+  }
+  .brand .sub {
+    font-family: var(--mono);
     font-size: 10px;
-    color: #fff;
-    text-shadow: 1px 1px 0 #000;
+    color: var(--dim);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .res-chip .ico { font-size: 14px; line-height: 1; }
-  .res-chip.gems { background: linear-gradient(180deg, #5a40a0, #2a1860); }
-  .res-chip.coins { background: linear-gradient(180deg, #c09020, #805010); }
-  .res-chip.fish { background: linear-gradient(180deg, #3080c0, #184878); }
-
-  .lobby-mid {
-    position: relative;
-    z-index: 2;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(12px, 4vw, 40px);
-    padding: 48px 60px 8px;
-    min-height: 0;
+  .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ok); box-shadow: 0 0 8px var(--ok);
+    animation: dotPulse 2s ease-in-out infinite; vertical-align: middle; margin-right: 5px;
   }
+  @keyframes dotPulse { 50% { opacity: 0.4; } }
 
-  .brawler-slot {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  header .controls {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .ctl {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--txt);
+    background: rgba(12, 30, 50, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+    outline: none;
+    max-width: 190px;
+  }
+  select.ctl, input.ctl:focus { border-color: var(--line-strong); }
+  select.ctl option { background: #0a1830; }
+  .icon-btn {
+    width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(12, 30, 50, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--txt);
+    font-size: 16px;
     cursor: pointer;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    color: #fff;
-    padding: 0;
-    transition: transform 0.12s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .brawler-slot:hover { transform: translateY(-4px) scale(1.03); }
-  .brawler-slot:active { transform: translateY(0) scale(0.98); }
-
-  .brawler-slot .stage {
-    width: clamp(110px, 28vw, 170px);
-    height: clamp(140px, 36vw, 210px);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    position: relative;
-    filter: drop-shadow(0 10px 0 rgba(0,0,0,0.2));
-  }
-
-  .brawler-slot .stage::before {
-    content: '';
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 70%;
-    height: 18px;
-    background: radial-gradient(ellipse, rgba(0,0,0,0.35), transparent 70%);
-    border-radius: 50%;
-  }
-
-  .brawler-slot img.char-img {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    position: relative;
-    z-index: 1;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
-  }
-
-  .brawler-slot .char-name {
-    margin-top: 4px;
-    font-size: clamp(9px, 2.2vw, 12px);
-    background: linear-gradient(180deg, #2a2a40, #141422);
-    border: 3px solid #0c0c14;
-    border-radius: 10px;
-    padding: 6px 14px;
-    box-shadow: 0 3px 0 #08080e;
-    text-shadow: 2px 2px 0 #000;
-    letter-spacing: 0.5px;
-  }
-
-  .brawler-slot.selected .char-name {
-    background: linear-gradient(180deg, #ffd24a, #e09010);
-    color: #2a1800;
-    border-color: #5a3000;
-    text-shadow: 0 1px 0 rgba(255,255,255,0.35);
-    box-shadow: 0 0 16px rgba(255,200,40,0.55), 0 3px 0 #5a3000;
-  }
-
-  .brawler-slot.selected .stage img {
-    filter: drop-shadow(0 0 12px rgba(255,210,60,0.7)) drop-shadow(0 4px 8px rgba(0,0,0,0.35));
-  }
-
-  .brawler-slot .sel-ring {
-    display: none;
-    position: absolute;
-    top: -6px;
-    right: -2px;
-    background: #3ecf5a;
-    color: #fff;
-    border: 3px solid #0c2810;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 3px 0 #082010;
-    z-index: 3;
-  }
-  .brawler-slot.selected .sel-ring { display: flex; }
-
-  .lobby-side-left, .lobby-side-right {
-    position: absolute;
-    top: 70px;
-    z-index: 3;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .lobby-side-left { left: 10px; }
-  .lobby-side-right { right: 10px; align-items: flex-end; }
-
-  .side-btn {
-    width: 54px;
-    height: 54px;
-    border-radius: 14px;
-    border: 3px solid #1a1020;
-    background: linear-gradient(180deg, #5a6a90 0%, #2a3458 100%);
-    box-shadow: 0 4px 0 #101828, 0 6px 12px rgba(0,0,0,0.3);
-    color: #fff;
-    font-size: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: default;
-    font-family: inherit;
-  }
-  .side-btn.shop { background: linear-gradient(180deg, #f0c040, #c07010); }
-  .side-btn.quest { background: linear-gradient(180deg, #50b0f0, #2060a0); }
-  .side-btn.news { background: linear-gradient(180deg, #70d060, #288020); }
-  .side-btn.friends { background: linear-gradient(180deg, #f08050, #a03018); }
-  .side-btn.jarvis {
-    background: linear-gradient(180deg, #4ce1ff, #1060a8);
-    box-shadow: 0 4px 0 #082838, 0 0 14px rgba(76, 225, 255, 0.55);
-    cursor: pointer;
+    transition: all 0.15s ease;
     text-decoration: none;
   }
-  .side-btn.jarvis:active { transform: translateY(2px); }
+  .icon-btn:hover { border-color: var(--line-strong); box-shadow: 0 0 10px rgba(63, 208, 255, 0.3); }
+  .icon-btn.off { color: var(--dim); opacity: 0.6; }
 
-  .side-label {
-    font-size: 7px;
-    color: #fff;
-    text-shadow: 1px 1px 0 #000;
-    text-align: center;
-    margin-top: -2px;
-    max-width: 54px;
-  }
-
-  .lobby-bottom {
-    position: relative;
-    z-index: 3;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 8px 12px 14px;
-  }
-
-  .mode-card {
+  /* ═══ CHATTYTA ═══ */
+  main {
+    position: relative; z-index: 5;
     flex: 1;
-    max-width: 280px;
-    background: linear-gradient(180deg, #3a3a58 0%, #1c1c30 100%);
-    border: 3px solid #10101c;
-    border-radius: 16px;
-    padding: 10px 12px;
-    box-shadow: 0 5px 0 #08080e, 0 8px 18px rgba(0,0,0,0.35);
-    color: #fff;
-    text-align: left;
+    overflow-y: auto;
+    padding: 18px 14px 8px;
+    scroll-behavior: smooth;
   }
-  .mode-card .mode-tag {
-    display: inline-block;
-    font-size: 7px;
-    background: #e04060;
-    padding: 3px 8px;
+  #chat { width: min(920px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+  .msg { display: flex; gap: 10px; align-items: flex-start; max-width: 92%; }
+  .msg .bubble {
+    position: relative;
+    padding: 10px 14px;
+    font-size: 16.5px;
+    font-weight: 500;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+  .msg .bubble b { color: #fff; }
+  .msg .bubble code {
+    font-family: var(--mono); font-size: 13px;
+    background: rgba(63, 208, 255, 0.12);
+    border: 1px solid rgba(63, 208, 255, 0.25);
+    border-radius: 4px; padding: 1px 5px;
+  }
+  .msg .bubble pre {
+    margin: 8px 0 4px; padding: 10px 12px;
+    background: rgba(2, 8, 16, 0.85);
+    border: 1px solid var(--line);
     border-radius: 6px;
-    margin-bottom: 6px;
-    box-shadow: 0 2px 0 #801028;
+    overflow-x: auto;
   }
-  .mode-card .mode-title {
-    font-size: clamp(11px, 2.5vw, 14px);
-    color: #ffe066;
-    text-shadow: 2px 2px 0 #000;
-    margin-bottom: 4px;
+  .msg .bubble pre code { background: none; border: none; padding: 0; color: var(--cyan-2); }
+  .msg .bubble a { color: var(--gold); }
+  .msg .bubble img.gen {
+    display: block; max-width: min(480px, 100%); border-radius: 8px;
+    border: 1px solid var(--line-strong); margin-top: 8px;
   }
-  .mode-card .mode-sub {
-    font-size: 8px;
-    color: #c0c8e0;
-    line-height: 1.5;
+  .msg .meta {
+    font-family: var(--mono); font-size: 10px; color: var(--dim);
+    margin-top: 5px; letter-spacing: 0.06em;
   }
 
-  .play-btn {
-    font-family: inherit;
-    font-size: clamp(16px, 4vw, 22px);
-    font-weight: bold;
-    letter-spacing: 1px;
-    color: #fff;
-    text-shadow: 0 2px 0 rgba(0,0,0,0.35);
-    border: 4px solid #0c3010;
-    border-radius: 18px;
-    padding: 16px 36px;
-    min-width: min(46vw, 200px);
-    cursor: pointer;
-    background: linear-gradient(180deg, #7dff6a 0%, #2ecf3a 48%, #189828 100%);
-    box-shadow:
-      0 6px 0 #0a5010,
-      0 10px 20px rgba(0,0,0,0.35),
-      inset 0 3px 0 rgba(255,255,255,0.35);
-    transition: transform 0.08s, box-shadow 0.08s, filter 0.08s;
+  .msg.jarvis { align-self: flex-start; }
+  .msg.jarvis .bubble {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--cyan);
+    border-radius: 3px 12px 12px 12px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+    box-shadow: 0 0 24px rgba(20, 90, 150, 0.15);
   }
-  .play-btn:hover { filter: brightness(1.08); }
-  .play-btn:active {
-    transform: translateY(4px);
-    box-shadow: 0 2px 0 #0a5010, 0 4px 10px rgba(0,0,0,0.35), inset 0 3px 0 rgba(255,255,255,0.25);
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.user .bubble {
+    background: linear-gradient(180deg, rgba(64, 52, 12, 0.55), rgba(46, 36, 8, 0.7));
+    border: 1px solid rgba(255, 210, 74, 0.35);
+    border-right: 3px solid var(--gold);
+    border-radius: 12px 3px 12px 12px;
+    color: #fff3cf;
   }
+  .msg.user .meta { text-align: right; }
+  .msg.tool .bubble { border-left-color: var(--ok); }
+  .msg.error .bubble { border-left-color: var(--red); }
 
-  .best-badge {
-    position: absolute;
-    top: 72px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-    background: linear-gradient(180deg, #ffd24a, #e09018);
-    color: #2a1800;
-    border: 3px solid #5a3000;
-    border-radius: 999px;
-    padding: 6px 16px;
-    font-size: 9px;
-    box-shadow: 0 4px 0 #5a3000, 0 0 16px rgba(255,200,40,0.4);
-    text-shadow: 0 1px 0 rgba(255,255,255,0.35);
-    white-space: nowrap;
-  }
-
-  /* ══════════════ IN-GAME HUD ══════════════ */
-  #hud {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    padding: 10px 12px;
-    display: none;
-    justify-content: space-between;
-    align-items: flex-start;
-    pointer-events: none;
-    z-index: 25;
-    gap: 8px;
-  }
-
-  .hud-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(180deg, rgba(30,30,50,0.92), rgba(12,12,24,0.92));
-    border: 3px solid #101018;
-    border-radius: 12px;
-    padding: 7px 12px;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
-    font-size: clamp(9px, 2.2vw, 12px);
-    color: #fff;
-    text-shadow: 2px 2px 0 #000;
-  }
-  .hud-chip .ico { font-size: 1.15em; }
-  .hud-chip.score { color: #ffe066; border-color: #5a4010; }
-  .hud-chip.best { color: #c8b0ff; font-size: 0.85em; opacity: 0.95; }
-  .hud-chip.fish { color: #7ec8ff; border-color: #184060; }
-  .hud-chip.speed { color: #ff9a60; border-color: #502010; }
-
-  .hud-col { display: flex; flex-direction: column; gap: 6px; }
-  .hud-col.right { align-items: flex-end; }
-
-  #hint {
-    position: absolute;
-    bottom: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 9px;
-    color: #fff;
-    background: rgba(0,0,0,0.45);
-    border: 2px solid rgba(255,255,255,0.15);
-    border-radius: 10px;
-    padding: 8px 14px;
-    text-shadow: 1px 1px 0 #000;
-    display: none;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 25;
-    animation: pulse 1.4s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-
-  /* ══════════════ GAME OVER ══════════════ */
-  #gameOverPanel {
-    position: absolute;
-    inset: 0;
-    pointer-events: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(8, 10, 20, 0.55);
-    backdrop-filter: blur(4px);
-    z-index: 30;
-  }
-
-  .go-card {
-    text-align: center;
-    background: linear-gradient(180deg, #3a3a58 0%, #1a1a2e 100%);
-    border: 4px solid #10101c;
-    border-radius: 22px;
-    padding: 26px 28px 22px;
-    max-width: min(92vw, 400px);
-    width: 100%;
-    box-shadow:
-      0 8px 0 #08080e,
-      0 16px 40px rgba(0,0,0,0.5),
-      inset 0 2px 0 rgba(255,255,255,0.08);
-  }
-
-  .go-card h1 {
-    font-size: clamp(16px, 4vw, 22px);
-    color: #ff6a6a;
-    text-shadow: 0 0 12px rgba(255,80,80,0.5), 3px 3px 0 #400808;
-    margin-bottom: 8px;
-    line-height: 1.4;
-  }
-
-  .go-card .sub {
-    font-size: 9px;
-    color: #c0c8e0;
-    line-height: 1.7;
-    margin-bottom: 16px;
-  }
-
-  .go-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 18px;
-  }
-
-  .go-stat {
-    background: rgba(0,0,0,0.35);
-    border: 2px solid #101018;
-    border-radius: 12px;
-    padding: 10px 6px;
-  }
-  .go-stat .lbl { font-size: 7px; color: #8890a8; margin-bottom: 6px; }
-  .go-stat .val { font-size: 12px; color: #ffe066; text-shadow: 1px 1px 0 #000; }
-
-  .go-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-
-  .btn {
-    font-family: inherit;
-    font-size: 12px;
-    padding: 14px 22px;
-    border-radius: 14px;
-    border: 3px solid #0c3010;
-    cursor: pointer;
-    color: #fff;
-    text-shadow: 0 2px 0 rgba(0,0,0,0.3);
-    background: linear-gradient(180deg, #7dff6a 0%, #2ecf3a 50%, #189828 100%);
-    box-shadow: 0 5px 0 #0a5010, 0 8px 16px rgba(0,0,0,0.35);
-    transition: transform 0.08s, box-shadow 0.08s;
-  }
-  .btn:hover { filter: brightness(1.06); }
-  .btn:active {
-    transform: translateY(3px);
-    box-shadow: 0 2px 0 #0a5010, 0 3px 8px rgba(0,0,0,0.35);
-  }
-  .btn.secondary {
-    background: linear-gradient(180deg, #7a8ab0 0%, #3a4a70 100%);
-    border-color: #182038;
-    box-shadow: 0 5px 0 #101828, 0 8px 16px rgba(0,0,0,0.35);
-  }
-
-  /* keep splash styles below — they already exist after this injection point */
-
-  /* ── Brawl-style splash / loading screen ── */
-  #splash {
-    position: absolute;
-    inset: 0;
-    z-index: 40;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    overflow: hidden;
-    pointer-events: auto;
-    background: #1a8fd8 center/cover no-repeat;
-    background-image: url('assets/loading_bg.jpg');
-    transition: opacity 0.55s ease, visibility 0.55s ease;
-  }
-
-  #splash.fade-out {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-
-  #splash .splash-sky {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.25), transparent 60%),
-      linear-gradient(180deg, rgba(90,180,255,0.15) 0%, rgba(0,40,80,0.25) 100%);
-    pointer-events: none;
-  }
-
-  #splash .splash-logo-wrap {
-    position: absolute;
-    top: 6%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(72vw, 420px);
-    filter: drop-shadow(0 8px 0 rgba(0,0,0,0.25)) drop-shadow(0 12px 24px rgba(0,0,0,0.35));
-    animation: logoBob 2.4s ease-in-out infinite;
-    z-index: 2;
-  }
-
-  #splash .splash-logo-wrap img {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  @keyframes logoBob {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-8px); }
-  }
-
-  #splash .splash-bottom {
-    position: relative;
-    z-index: 3;
-    width: min(92vw, 520px);
-    padding: 0 16px 7vh;
-    text-align: center;
-  }
-
-  #splash .dl-text {
-    font-family: 'Press Start 2P', system-ui, sans-serif;
-    font-size: clamp(11px, 2.6vw, 16px);
-    color: #fff;
-    text-shadow:
-      0 0 8px rgba(0,0,0,0.5),
-      3px 3px 0 #1a2040,
-      -1px -1px 0 #1a2040,
-      1px -1px 0 #1a2040,
-      -1px 1px 0 #1a2040;
-    margin-bottom: 14px;
-    letter-spacing: 0.5px;
-    line-height: 1.5;
-  }
-
-  #splash .bar-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    justify-content: center;
-  }
-
-  #splash .bar-track {
-    flex: 1;
-    max-width: 380px;
-    height: 22px;
-    background: linear-gradient(180deg, #2a1030 0%, #4a1848 40%, #1a0820 100%);
-    border: 4px solid #1a1028;
-    border-radius: 14px;
-    box-shadow:
-      0 0 0 3px rgba(255,255,255,0.35),
-      0 6px 0 rgba(0,0,0,0.35),
-      inset 0 2px 6px rgba(0,0,0,0.5);
-    overflow: hidden;
-    position: relative;
-  }
-
-  #splash .bar-fill {
-    height: 100%;
-    width: 0%;
-    border-radius: 10px;
-    background: linear-gradient(180deg, #ffe066 0%, #ff9a2e 45%, #e05018 100%);
-    box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.2);
-    transition: width 0.12s linear;
-    position: relative;
-  }
-
-  #splash .bar-fill::after {
-    content: '';
-    position: absolute;
-    left: 0; right: 0; top: 0;
-    height: 45%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
-    border-radius: 10px 10px 0 0;
-  }
-
-  #splash .bar-shine {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
-    background-size: 200% 100%;
-    animation: barShine 1.6s linear infinite;
-    pointer-events: none;
-  }
-
-  @keyframes barShine {
-    0% { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
-  }
-
-  #splash .bar-icon {
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-    background: radial-gradient(circle at 35% 30%, #fff 0%, #ffe066 35%, #ff9a2e 70%, #c04010 100%);
-    border: 3px solid #1a1028;
+  .avatar-j {
+    width: 34px; height: 34px; flex: 0 0 auto; margin-top: 2px;
     border-radius: 50%;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    animation: iconSpin 2.8s ease-in-out infinite;
+    border: 1px solid var(--line-strong);
+    background: radial-gradient(circle, rgba(190, 240, 255, 0.95) 18%, rgba(63, 208, 255, 0.55) 45%, rgba(8, 24, 44, 0.9) 78%);
+    box-shadow: 0 0 12px rgba(63, 208, 255, 0.5);
+  }
+  .avatar-u {
+    width: 34px; height: 34px; flex: 0 0 auto; margin-top: 2px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 210, 74, 0.5);
+    background: #241c06;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
   }
 
-  @keyframes iconSpin {
-    0%, 100% { transform: rotate(-8deg) scale(1); }
-    50% { transform: rotate(8deg) scale(1.08); }
+  /* tänker-indikator */
+  .thinking-ind {
+    display: inline-flex; gap: 5px; align-items: center; height: 22px;
   }
-
-  #splash .tip {
-    margin-top: 14px;
-    font-size: 8px;
-    color: rgba(255,255,255,0.85);
-    text-shadow: 1px 1px 0 #000;
-    letter-spacing: 0.5px;
+  .thinking-ind i {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 7px var(--cyan);
+    animation: hop 1.1s ease-in-out infinite;
   }
+  .thinking-ind i:nth-child(2) { animation-delay: 0.15s; }
+  .thinking-ind i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes hop { 40% { transform: translateY(-6px); } 80% { transform: translateY(0); } }
 
-
-
-
-  /* Hide Netlify Deploy Preview floating badge / drawer if present */
-  iframe[src*="netlify"],
-  iframe#netlify-identity-widget,
-  #netlify-identity-widget,
-  .netlify-drawer,
-  .netlify-drawer-iframe,
-  [data-netlify-deploy-id],
-  #nf-drawer-root,
-  .nf-drawer,
-  body > div[id^="netlify"] {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    opacity: 0 !important;
+  /* ═══ SNABBVAL ═══ */
+  #chips {
+    position: relative; z-index: 5;
+    width: min(920px, 100%); margin: 0 auto;
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 6px 14px 2px;
   }
+  .chip {
+    font-family: var(--body); font-weight: 600; font-size: 13.5px;
+    color: var(--cyan-2);
+    background: rgba(12, 30, 50, 0.7);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--line-strong); background: rgba(20, 46, 74, 0.9); box-shadow: 0 0 12px rgba(63, 208, 255, 0.25); }
 
+  /* ═══ INMATNING ═══ */
+  #dock {
+    position: relative; z-index: 10;
+    border-top: 1px solid var(--line);
+    background: linear-gradient(0deg, rgba(6, 16, 30, 0.95), rgba(6, 16, 30, 0.65));
+    padding: 10px 14px 8px;
+  }
+  #dockInner { width: min(920px, 100%); margin: 0 auto; }
+  #inputRow { display: flex; gap: 8px; align-items: flex-end; }
+  #input {
+    flex: 1;
+    resize: none;
+    font-family: var(--body); font-size: 16.5px; font-weight: 500;
+    color: var(--txt);
+    background: rgba(10, 26, 44, 0.9);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    outline: none;
+    max-height: 132px;
+    line-height: 1.4;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  #input:focus { border-color: var(--line-strong); box-shadow: 0 0 16px rgba(63, 208, 255, 0.2); }
+  #input::placeholder { color: var(--dim); }
+  .big-btn {
+    height: 44px; min-width: 52px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: linear-gradient(180deg, rgba(33, 96, 150, 0.9), rgba(15, 48, 84, 0.95));
+    color: #eaf9ff; font-size: 19px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.15s ease;
+    flex: 0 0 auto;
+  }
+  .big-btn:hover:not(:disabled) { box-shadow: 0 0 16px rgba(63, 208, 255, 0.45); transform: translateY(-1px); }
+  .big-btn:disabled { opacity: 0.45; cursor: default; }
+  .big-btn.mic-on { border-color: var(--red); background: linear-gradient(180deg, rgba(150, 40, 60, 0.9), rgba(84, 15, 30, 0.95)); }
+  .big-btn.stop { border-color: var(--red); color: #ffd7de; }
+
+  #statusbar {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 10.5px; color: var(--dim);
+    letter-spacing: 0.08em;
+    padding: 7px 4px 0;
+  }
+  #statusbar .sep::before { content: '·'; margin-right: 14px; color: rgba(90, 214, 255, 0.4); }
+
+  /* ═══ INSTÄLLNINGAR ═══ */
+  #modalWrap {
+    position: fixed; inset: 0; z-index: 90;
+    background: rgba(2, 6, 12, 0.75);
+    backdrop-filter: blur(3px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  #modalWrap.open { display: flex; }
+  #modal {
+    width: min(640px, 100%);
+    max-height: 86vh; overflow-y: auto;
+    background: var(--panel-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: 0 0 50px rgba(63, 208, 255, 0.25);
+  }
+  #modal h2 {
+    font-family: var(--head); font-size: 16px; letter-spacing: 0.2em;
+    color: #fff; margin-bottom: 4px;
+  }
+  #modal .m-sub { font-size: 13.5px; color: var(--dim); margin-bottom: 16px; }
+  .prov-block {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 13px;
+    margin-bottom: 10px;
+    background: rgba(8, 20, 36, 0.5);
+  }
+  .prov-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .prov-name { font-weight: 700; font-size: 15.5px; color: #fff; }
+  .badge {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em;
+    padding: 2px 8px; border-radius: 999px;
+    border: 1px solid;
+  }
+  .badge.free { color: var(--ok); border-color: rgba(89, 255, 160, 0.5); }
+  .badge.key { color: var(--gold); border-color: rgba(255, 210, 74, 0.5); }
+  .badge.set { color: var(--cyan-2); border-color: var(--line-strong); }
+  .prov-desc { font-size: 13px; color: var(--dim); margin-top: 3px; }
+  .prov-key-row { display: flex; gap: 8px; margin-top: 9px; align-items: center; flex-wrap: wrap; }
+  .prov-key-row input {
+    flex: 1; min-width: 180px;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--txt);
+    background: rgba(4, 12, 24, 0.9);
+    border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 10px; outline: none;
+  }
+  .prov-key-row input:focus { border-color: var(--line-strong); }
+  .mini-btn {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--cyan-2);
+    background: rgba(12, 30, 50, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 11px;
+    cursor: pointer; text-decoration: none;
+    white-space: nowrap;
+  }
+  .mini-btn:hover { border-color: var(--line-strong); }
+  .mini-btn.danger { color: #ffb3c0; border-color: rgba(255, 84, 112, 0.4); }
+  #modal .m-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  #modal .privacy { font-size: 12px; color: var(--dim); margin-top: 12px; line-height: 1.5; }
+  input[type="checkbox"] { accent-color: var(--cyan); }
+
+  /* toast */
+  #toast {
+    position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(20px);
+    z-index: 95;
+    background: var(--panel-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    color: var(--txt);
+    font-size: 14px; font-weight: 600;
+    padding: 9px 16px;
+    opacity: 0; pointer-events: none;
+    transition: all 0.25s ease;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: rgba(6, 14, 26, 0.6); }
+  ::-webkit-scrollbar-thumb { background: rgba(63, 208, 255, 0.3); border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(63, 208, 255, 0.55); }
+
+  @media (max-width: 640px) {
+    header { gap: 10px; padding: 10px 12px 8px; }
+    .brand .sub { display: none; }
+    .ctl { max-width: 132px; font-size: 11px; padding: 6px 7px; }
+    .msg { max-width: 100%; }
+    #statusbar { font-size: 9.5px; gap: 9px; }
+    #statusbar .sep::before { margin-right: 9px; }
+  }
 </style>
-
-<script>
-// Remove Netlify deploy-preview badge / identity widget if injected
-(function () {
-  function scrub() {
-    document.querySelectorAll(
-      'iframe[src*="netlify"],iframe#netlify-identity-widget,#netlify-identity-widget,.netlify-drawer,[data-netlify-deploy-id],#nf-drawer-root,.nf-drawer'
-    ).forEach(function (el) { el.remove(); });
-  }
-  scrub();
-  document.addEventListener('DOMContentLoaded', scrub);
-  setTimeout(scrub, 500);
-  setTimeout(scrub, 1500);
-  setTimeout(scrub, 3000);
-  try {
-    new MutationObserver(scrub).observe(document.documentElement, { childList: true, subtree: true });
-  } catch (e) {}
-})();
-</script>
 </head>
 <body>
-<div id="wrap">
-  <canvas id="game" width="900" height="500"></canvas>
+<div class="vignette"></div>
 
-  <div id="hud">
-    <div class="hud-col">
-      <div class="hud-chip score"><span class="ico">⭐</span> <span id="scoreVal">0</span></div>
-      <div class="hud-chip best">🏆 <span id="bestVal">0</span></div>
+<!-- ═══ UPPSTART ═══ -->
+<div id="boot">
+  <div id="bootInner">
+    <div class="boot-title">J.A.R.V.I.S.</div>
+    <div id="bootLog"></div>
+  </div>
+</div>
+
+<!-- ═══ SIDHUVUD ═══ -->
+<header>
+  <div class="brand">
+    <div class="reactor" id="reactor">
+      <div class="r-ring r3"></div>
+      <div class="r-ring r2"></div>
+      <div class="r-ring r1"></div>
+      <div class="r-core"></div>
     </div>
-    <div class="hud-col right">
-      <div class="hud-chip fish"><span class="ico">🐟</span> <span id="fishVal">0</span></div>
-      <div class="hud-chip speed"><span class="ico">⚡</span> <span id="speedVal">1.0</span>x</div>
+    <div>
+      <h1>J.A.R.V.I.S.</h1>
+      <div class="sub">Just A Rather Very Intelligent System</div>
+      <div class="sub" style="color:var(--ok)"><span class="status-dot"></span><span id="sysState">ONLINE</span></div>
     </div>
   </div>
-
-  <div id="hint">MELLANSLAG / KLICKA / TRYCK för att hoppa</div>
-
-  <!-- Full-screen splash (Brawl-style loading) -->
-  <div id="splash">
-    <div class="splash-sky"></div>
-    <div class="splash-logo-wrap">
-      <img src="assets/loading_logo.png?v=7" alt="Katt Runner" id="splashLogo">
-    </div>
-    <div class="splash-bottom">
-      <div class="dl-text">Laddar innehåll: <span id="loadPct">0</span>%</div>
-      <div class="bar-row">
-        <div class="bar-track">
-          <div class="bar-fill" id="loadBar"></div>
-          <div class="bar-shine"></div>
-        </div>
-        <div class="bar-icon">🐱</div>
-      </div>
-      <div class="tip" id="loadTip">Samla fiskar. Undvik sopkärl!</div>
-    </div>
+  <div class="controls">
+    <select class="ctl" id="providerSel" title="Välj AI-tjänst"></select>
+    <input class="ctl" id="modelInput" list="modelList" title="Modell (valfri)" placeholder="modell">
+    <datalist id="modelList"></datalist>
+    <button class="icon-btn off" id="voiceBtn" title="Röstsvar på/av">🔊</button>
+    <button class="icon-btn" id="settingsBtn" title="Inställningar & API-nycklar">⚙️</button>
   </div>
+</header>
 
-  <div id="ui">
-    <!-- Brawl-style lobby -->
-    <div id="menuPanel" class="hidden">
-      <div class="lobby-top">
-        <div class="lobby-pill">
-          <div class="avatar" id="lobbyAvatar"><img id="lobbyAvatarImg" src="assets/chars/silver/front.png?v=6" alt=""></div>
-          <div class="meta">
-            <div class="name-tag" id="lobbyPlayerName">SPELARE</div>
-            <div class="trophy-row">🏆 <span id="menuBest">0</span></div>
-          </div>
-        </div>
-        <div class="res-row">
-          <div class="res-chip fish"><span class="ico">🐟</span> <span id="lobbyFish">0</span></div>
-          <div class="res-chip coins"><span class="ico">⭐</span> <span id="lobbyStars">0</span></div>
-          <div class="res-chip gems"><span class="ico">💎</span> ∞</div>
-        </div>
-      </div>
+<!-- ═══ CHATT ═══ -->
+<main id="scroll">
+  <div id="chat"></div>
+</main>
 
-      <div class="best-badge">BÄSTA: <span id="menuBest2">0</span></div>
+<div id="chips"></div>
 
-      <div class="lobby-side-left">
-        <div class="side-btn shop">🛒</div>
-        <div class="side-label">BUTIK</div>
-        <div class="side-btn quest">📋</div>
-        <div class="side-label">UPPDRAG</div>
-      </div>
-      <div class="lobby-side-right">
-        <a class="side-btn jarvis" href="jarvis.html" title="Chatta med JARVIS">🤖</a>
-        <div class="side-label">JARVIS</div>
-        <div class="side-btn news">📰</div>
-        <div class="side-label">NYTT</div>
-        <div class="side-btn friends">👥</div>
-        <div class="side-label">VÄNNER</div>
-      </div>
-
-      <div class="lobby-mid" id="charSelect">
-        <button type="button" class="brawler-slot selected" data-char="silver" id="charSilver">
-          <span class="sel-ring">✓</span>
-          <div class="stage">
-            <img class="char-img" src="assets/chars/silver/front.png?v=6" alt="Silver">
-          </div>
-          <div class="char-name">SILVER</div>
-        </button>
-        <button type="button" class="brawler-slot" data-char="dark" id="charDark">
-          <span class="sel-ring">✓</span>
-          <div class="stage">
-            <img class="char-img" src="assets/chars/dark/front.png?v=6" alt="Skugga">
-          </div>
-          <div class="char-name">SKUGGA</div>
-        </button>
-      </div>
-
-      <div class="lobby-bottom">
-        <div class="mode-card">
-          <div class="mode-tag">ENDLESS</div>
-          <div class="mode-title">KATT RUN</div>
-          <div class="mode-sub">Hoppa · Samla fisk · Spring!</div>
-        </div>
-        <button class="play-btn" id="startBtn">SPELA</button>
-      </div>
+<!-- ═══ INMATNING ═══ -->
+<div id="dock">
+  <div id="dockInner">
+    <div id="inputRow">
+      <button class="big-btn" id="micBtn" title="Prata (taligenkänning)">🎙️</button>
+      <textarea id="input" rows="1" placeholder="Skriv till JARVIS… (Enter = skicka, /hjälp = kommandon)"></textarea>
+      <button class="big-btn" id="sendBtn" title="Skicka">➤</button>
+      <button class="big-btn stop hidden" id="stopBtn" title="Stoppa" style="display:none">■</button>
     </div>
-
-    <!-- Game over -->
-    <div id="gameOverPanel" class="hidden">
-      <div class="go-card">
-        <h1>AJ AJ AJ! 😿</h1>
-        <p class="sub">Katten snubblade…</p>
-        <div class="go-stats">
-          <div class="go-stat"><div class="lbl">POÄNG</div><div class="val" id="finalScore">0</div></div>
-          <div class="go-stat"><div class="lbl">FISKAR</div><div class="val" id="finalFish">0</div></div>
-          <div class="go-stat"><div class="lbl">BÄSTA</div><div class="val" id="finalBest">0</div></div>
-        </div>
-        <div class="go-actions">
-          <button class="btn" id="retryBtn">IGEN!</button>
-          <button class="btn secondary" id="menuBtn">LOBBY</button>
-        </div>
-      </div>
+    <div id="statusbar">
+      <span id="stProvider">MOTOR: —</span>
+      <span class="sep" id="stModel">MODELL: —</span>
+      <span class="sep" id="stLatency">SVARSTID: —</span>
+      <span class="sep" id="stVoice">RÖST: AV</span>
+      <span class="sep" id="stFree">GRATIS-TJÄNSTER: 9</span>
     </div>
   </div>
 </div>
 
+<!-- ═══ INSTÄLLNINGAR ═══ -->
+<div id="modalWrap">
+  <div id="modal">
+    <h2>⚙ INSTÄLLNINGAR</h2>
+    <div class="m-sub">Koppla in gratis AI-tjänster. Nycklar är valfria — JARVIS fungerar direkt utan.</div>
+    <div id="provList"></div>
+    <div class="prov-block">
+      <div class="prov-head">
+        <span class="prov-name">🤖 Automatisk växling</span>
+      </div>
+      <div class="prov-desc" style="margin-top:6px">
+        <label style="display:flex;gap:8px;align-items:center;cursor:pointer">
+          <input type="checkbox" id="failoverChk" checked>
+          Vid fel: byt automatiskt till nästa tillgängliga gratis-tjänst
+        </label>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="mini-btn" id="exportBtn">⬇ Exportera chatt (.md)</button>
+      <button class="mini-btn danger" id="wipeBtn">🗑 Rensa all data</button>
+      <button class="mini-btn" id="closeModal" style="margin-left:auto">Stäng ✕</button>
+    </div>
+    <div class="privacy">
+      🔒 Integritet: API-nycklar sparas <b>endast i din webbläsare</b> (localStorage) och skickas bara direkt
+      till tjänsten du valt. Chattar går via respektive AI-tjänsts API — läs deras integritetspolicy om du är nyfiken.
+      Bilder genereras via Pollinations och är publika per design.
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://js.puter.com/v2/" onerror="window.__puterFailed=true"></script>
 <script>
 (() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
+'use strict';
 
-  const W = canvas.width;
-  const H = canvas.height;
-  const GROUND_Y = H - 78;
+/* ═══════════════ HJÄLPFUNKTIONER ═══════════════ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  // ── Assets ──────────────────────────────────────────────
-  const CACHE = '?v=6';
+function md(src) {
+  // skydda kodblock först
+  const blocks = [];
+  let t = esc(src);
+  t = t.replace(/```[\w]*\n?([\s\S]*?)```/g, (m, c) => {
+    blocks.push(c.replace(/\n$/, ''));
+    return '\u0000PRE' + (blocks.length - 1) + '\u0000';
+  });
+  t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  t = t.replace(/(^|\W)\*([^*\n]+)\*/g, '$1<i>$2</i>');
+  t = t.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  t = t.replace(/^### (.*)$/gm, '<b style="color:var(--cyan-2)">$1</b>');
+  t = t.replace(/\n/g, '<br>');
+  t = t.replace(/\u0000PRE(\d+)\u0000/g, (m, i) => '<pre><code>' + blocks[+i] + '</code></pre>');
+  return t;
+}
 
-  const CHARACTERS = {
-    silver: {
-      id: 'silver',
-      name: 'Silver',
-      run: 'assets/chars/silver/run.png' + CACHE,
-      jump: 'assets/chars/silver/jump.png' + CACHE,
-      idle: 'assets/chars/silver/idle.png' + CACHE,
-      front: 'assets/chars/silver/front.png' + CACHE,
-      particleColors: ['#a0c0e8', '#c8d8f0', '#fff', '#6a8ab8', '#e8e0d0'],
-    },
-    dark: {
-      id: 'dark',
-      name: 'Skugga',
-      run: 'assets/chars/dark/run.png' + CACHE,
-      jump: 'assets/chars/dark/jump.png' + CACHE,
-      idle: 'assets/chars/dark/idle.png' + CACHE,
-      front: 'assets/chars/dark/front.png' + CACHE,
-      particleColors: ['#9090a0', '#d0d0d8', '#fff', '#505060', '#e8e8f0', '#2a2a35'],
-    },
-  };
+function stripForSpeech(text) {
+  return String(text)
+    .replace(/```[\s\S]*?```/g, ' kodblock. ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, ' länk ')
+    .replace(/[*_`#>~]/g, '')
+    .replace(/[🀀-🫿\u2600-\u27BF\uFE0F]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 800);
+}
 
-  let selectedChar = localStorage.getItem('catRunnerChar') || 'silver';
-  if (!CHARACTERS[selectedChar]) selectedChar = 'silver';
+let toastTimer = null;
+function toast(msg, ms = 2600) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
 
-  const SHARED_ASSETS = {
-    trash: 'assets/obstacle_trash_crop.png' + CACHE,
-    hydrant: 'assets/obstacle_hydrant_crop.png' + CACHE,
-    fish: 'assets/fish_coin_crop.png' + CACHE,
-    bg: 'assets/bg_city_opt.png' + CACHE,
-  };
+/* ═══════════════ LAGRING ═══════════════ */
+const LS_PREFS = 'jarvis.prefs.v2';
+const LS_CHAT  = 'jarvis.chat.v2';
 
-  const img = {};           // shared + active character sprites
-  const charImgs = {};      // per-character caches { silver: {run,jump,...}, dark: {...} }
-
-  // Pre-baked background strip (avoids scaling huge PNG every frame → lag at high speed)
-  let bgStrip = null;
-  let bgStripW = 0;
-  let bgStripH = 0;
-  let skyGrad = null;
-  let hudTick = 0;
-
-  function loadImage(src) {
-    return new Promise((res) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = () => { console.warn('fail', src); res(null); };
-      i.src = src;
-    });
-  }
-
-  function bakeBackground() {
-    const bh = GROUND_Y + 10;
-    bgStripH = bh;
-    skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-    skyGrad.addColorStop(0, '#6b4c9a');
-    skyGrad.addColorStop(0.45, '#e89060');
-    skyGrad.addColorStop(0.75, '#f0a878');
-    skyGrad.addColorStop(1, '#3a6040');
-
-    if (!img.bg) {
-      bgStrip = null;
-      bgStripW = W;
-      return;
-    }
-
-    // One tile width matching display height (integer pixels)
-    let tw = Math.max(1, Math.round((img.bg.width / img.bg.height) * bh));
-    // Cap tile width so we never overdraw giant bitmaps
-    if (tw > W) tw = W;
-    bgStripW = tw;
-
-    const off = document.createElement('canvas');
-    off.width = tw;
-    off.height = bh;
-    const octx = off.getContext('2d');
-    octx.imageSmoothingEnabled = true;
-    octx.drawImage(img.bg, 0, 0, tw, bh);
-    // soft sun baked in
-    const sunX = tw * 0.72;
-    const sunY = bh * 0.33;
-    const rg = octx.createRadialGradient(sunX, sunY, 8, sunX, sunY, 70);
-    rg.addColorStop(0, 'rgba(255,230,150,0.45)');
-    rg.addColorStop(1, 'rgba(255,180,80,0)');
-    octx.fillStyle = rg;
-    octx.beginPath();
-    octx.arc(sunX, sunY, 70, 0, Math.PI * 2);
-    octx.fill();
-    bgStrip = off;
-  }
-
-  async function loadShared() {
-    await Promise.all(Object.entries(SHARED_ASSETS).map(async ([key, src]) => {
-      img[key] = await loadImage(src);
-    }));
-    bakeBackground();
-  }
-
-  async function loadCharacter(id) {
-    const def = CHARACTERS[id];
-    if (!def) return;
-    if (!charImgs[id]) {
-      const pack = {};
-      await Promise.all(['run', 'jump', 'idle', 'front'].map(async (k) => {
-        pack[k] = await loadImage(def[k]);
-      }));
-      charImgs[id] = pack;
-    }
-    // activate
-    img.run = charImgs[id].run;
-    img.jump = charImgs[id].jump;
-    img.idle = charImgs[id].idle;
-    img.front = charImgs[id].front;
-  }
-
-  function applyCharacter(id) {
-    if (!CHARACTERS[id]) return;
-    selectedChar = id;
-    localStorage.setItem('catRunnerChar', id);
-    // Lobby brawler slots
-    document.querySelectorAll('.brawler-slot').forEach(el => {
-      el.classList.toggle('selected', el.dataset.char === id);
-    });
-    // Avatar in top pill
-    const av = document.getElementById('lobbyAvatarImg');
-    if (av && CHARACTERS[id]) {
-      av.src = CHARACTERS[id].front;
-    }
-    const pn = document.getElementById('lobbyPlayerName');
-    if (pn) pn.textContent = CHARACTERS[id].name.toUpperCase();
-    // swap sprites if already loaded
-    if (charImgs[id]) {
-      img.run = charImgs[id].run;
-      img.jump = charImgs[id].jump;
-      img.idle = charImgs[id].idle;
-      img.front = charImgs[id].front;
-    } else {
-      loadCharacter(id);
-    }
-  }
-
-  // ── State ───────────────────────────────────────────────
-  const STATE = { MENU: 0, PLAY: 1, OVER: 2 };
-  let state = STATE.MENU;
-
-  let best = Number(localStorage.getItem('catRunnerBest') || 0);
-
-  const cat = {
-    x: 100,
-    y: 0,
-    w: 96,
-    h: 64,
-    vy: 0,
-    onGround: true,
-    frame: 0,
-    frameTimer: 0,
-    invuln: 0,
-  };
-
-  let gravity = 0.58;
-  let jumpForce = -12.8;
-  let speed = 3.4;
-  let baseSpeed = 3.4;
-  const MAX_SPEED = 11.5;     // top scroll speed far into a run
-  // Animation: calm at start, quicker stride as the track speeds up
-  const RUN_FPS = 6.5;        // run-cycle frames/sec at reference speed
-  const ANIM_SPEED_REF = 3.8; // scroll speed where anim plays at RUN_FPS
-  let distance = 0;
-  let score = 0;
-  let fishCount = 0;
-  let bgOff = 0;
-  let groundOff = 0;
-  let spawnTimer = 0;
-  let nextSpawn = 90;
-  let obstacles = [];
-  let fishes = [];
-  let particles = [];
-  let shake = 0;
-  let startedOnce = false;
-
-  // ── Helpers ─────────────────────────────────────────────
-  function rand(a, b) { return a + Math.random() * (b - a); }
-  function irand(a, b) { return Math.floor(rand(a, b + 1)); }
-
-  function resetGame() {
-    cat.y = GROUND_Y - cat.h;
-    cat.vy = 0;
-    cat.onGround = true;
-    cat.frame = 0;
-    cat.frameTimer = 0;
-    cat.invuln = 0;
-    speed = baseSpeed;
-    distance = 0;
-    score = 0;
-    fishCount = 0;
-    bgOff = 0;
-    groundOff = 0;
-    spawnTimer = 0;
-    nextSpawn = 80;
-    obstacles = [];
-    fishes = [];
-    particles = [];
-    shake = 0;
-    updateHud();
-  }
-
-  function updateHud(force) {
-    // DOM updates are expensive — throttle during play
-    if (!force && state === STATE.PLAY) {
-      hudTick++;
-      if (hudTick % 6 !== 0) return;
-    }
-    document.getElementById('scoreVal').textContent = Math.floor(score);
-    document.getElementById('bestVal').textContent = best;
-    document.getElementById('fishVal').textContent = fishCount;
-    const mult = speed / baseSpeed;
-    document.getElementById('speedVal').textContent = mult.toFixed(1);
-  }
-
-  function showMenu() {
-    state = STATE.MENU;
-    document.getElementById('menuPanel').classList.remove('hidden');
-    document.getElementById('gameOverPanel').classList.add('hidden');
-    document.getElementById('hud').style.display = 'none';
-    document.getElementById('hint').style.display = 'none';
-    syncLobbyStats();
-    document.getElementById('ui').style.pointerEvents = 'auto';
-  }
-
-  function syncLobbyStats() {
-    const b1 = document.getElementById('menuBest');
-    const b2 = document.getElementById('menuBest2');
-    if (b1) b1.textContent = best;
-    if (b2) b2.textContent = best;
-    const lf = document.getElementById('lobbyFish');
-    const ls = document.getElementById('lobbyStars');
-    const totalFish = Number(localStorage.getItem('catRunnerTotalFish') || 0);
-    if (lf) lf.textContent = totalFish;
-    if (ls) ls.textContent = best;
-  }
-
-  function startGame() {
-    resetGame();
-    state = STATE.PLAY;
-    startedOnce = true;
-    document.getElementById('menuPanel').classList.add('hidden');
-    document.getElementById('gameOverPanel').classList.add('hidden');
-    document.getElementById('hud').style.display = 'flex';
-    document.getElementById('hint').style.display = 'block';
-    document.getElementById('ui').style.pointerEvents = 'none';
-    setTimeout(() => {
-      if (state === STATE.PLAY) document.getElementById('hint').style.display = 'none';
-    }, 3500);
-  }
-
-  function gameOver() {
-    state = STATE.OVER;
-    shake = 14;
-    if (score > best) {
-      best = Math.floor(score);
-      localStorage.setItem('catRunnerBest', String(best));
-    }
-    // burst particles (keep few for performance)
-    for (let i = 0; i < 12; i++) {
-      particles.push({
-        x: cat.x + cat.w / 2,
-        y: cat.y + cat.h / 2,
-        vx: rand(-5, 5),
-        vy: rand(-8, -1),
-        life: rand(24, 40),
-        max: 40,
-        color: (CHARACTERS[selectedChar].particleColors)[irand(0, CHARACTERS[selectedChar].particleColors.length - 1)],
-        size: rand(3, 6),
-      });
-    }
-    document.getElementById('finalScore').textContent = Math.floor(score);
-    document.getElementById('finalFish').textContent = fishCount;
-    document.getElementById('finalBest').textContent = best;
-    // lifetime fish bank for lobby chip
-    const prev = Number(localStorage.getItem('catRunnerTotalFish') || 0);
-    localStorage.setItem('catRunnerTotalFish', String(prev + fishCount));
-    document.getElementById('gameOverPanel').classList.remove('hidden');
-    document.getElementById('hint').style.display = 'none';
-    document.getElementById('ui').style.pointerEvents = 'auto';
-    updateHud(true);
-  }
-
-  function jump() {
-    if (state === STATE.MENU) { startGame(); return; }
-    if (state === STATE.OVER) return;
-    if (cat.onGround) {
-      cat.vy = jumpForce;
-      cat.onGround = false;
-      cat.frame = 2; // stretch pose as they leave the ground
-      cat.frameTimer = 0;
-      // dust
-      for (let i = 0; i < 5; i++) {
-        particles.push({
-          x: cat.x + cat.w * 0.35 + rand(0, 12),
-          y: GROUND_Y - 2,
-          vx: rand(-1.8, 0.4),
-          vy: rand(-2.2, -0.4),
-          life: rand(10, 18),
-          max: 18,
-          color: 'rgba(180,140,80,0.75)',
-          size: rand(2, 4),
-        });
-      }
-    }
-  }
-
-  // ── Spawn ───────────────────────────────────────────────
-  function spawnObstacle() {
-    const type = Math.random() < 0.55 ? 'trash' : 'hydrant';
-    const h = type === 'trash' ? 58 : 52;
-    const w = type === 'trash' ? 44 : 34;
-    obstacles.push({
-      type,
-      x: W + 20,
-      y: GROUND_Y - h,
-      w, h,
-      passed: false,
-    });
-
-    // Sometimes a fish above or after
-    if (Math.random() < 0.7) {
-      fishes.push({
-        x: W + 20 + rand(40, 160),
-        y: GROUND_Y - rand(90, 160),
-        w: 34,
-        h: 28,
-        bob: rand(0, Math.PI * 2),
-        taken: false,
-      });
-    }
-    // Extra floating fish occasionally
-    if (Math.random() < 0.35) {
-      fishes.push({
-        x: W + rand(200, 340),
-        y: GROUND_Y - rand(70, 140),
-        w: 34,
-        h: 28,
-        bob: rand(0, Math.PI * 2),
-        taken: false,
-      });
-    }
-  }
-
-  // ── Collision ───────────────────────────────────────────
-  function hitbox(o, shrink = 0.18) {
-    const sx = o.w * shrink;
-    const sy = o.h * shrink;
+const prefs = loadPrefs();
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(LS_PREFS) || '{}');
     return {
-      x: o.x + sx,
-      y: o.y + sy,
-      w: o.w - sx * 2,
-      h: o.h - sy * 1.4, // less from bottom
+      provider: p.provider || 'pollinations',
+      models: p.models || {},
+      keys: p.keys || {},
+      voice: !!p.voice,
+      failover: p.failover !== false,
     };
-  }
+  } catch { return { provider: 'pollinations', models: {}, keys: {}, voice: false, failover: true }; }
+}
+function savePrefs() { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }
 
-  function overlaps(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-  }
+let chatLog = [];
+try { chatLog = JSON.parse(localStorage.getItem(LS_CHAT) || '[]'); } catch { chatLog = []; }
+function saveChat() {
+  if (chatLog.length > 120) chatLog = chatLog.slice(-120);
+  localStorage.setItem(LS_CHAT, JSON.stringify(chatLog));
+}
 
-  // ── Update ──────────────────────────────────────────────
-  function update() {
-    // particles always
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.18;
-      p.life--;
-      if (p.life <= 0) particles.splice(i, 1);
+/* ═══════════════ AI-TJÄNSTER ═══════════════ */
+const PROVIDERS = {
+  pollinations: {
+    label: 'Pollinations', icon: '🌸',
+    desc: 'Helt gratis, ingen nyckel. Öppen plattform med flera modeller.',
+    type: 'openai', base: 'https://text.pollinations.ai/openai',
+    models: ['openai', 'mistral'], defaultModel: 'openai',
+    needsKey: false,
+  },
+  puter: {
+    label: 'Puter.js', icon: '☁️',
+    desc: 'Gratis GPT-modeller direkt i webbläsaren, ingen nyckel.',
+    type: 'puter',
+    models: ['gpt-5-nano', 'gpt-4o-mini', 'gpt-4.1-nano'], defaultModel: 'gpt-5-nano',
+    needsKey: false,
+  },
+  groq: {
+    label: 'Groq', icon: '⚡',
+    desc: 'Blixtsnabb gratis-nivå: Llama, Qwen, GPT-OSS m.fl.',
+    type: 'openai', base: 'https://api.groq.com/openai/v1',
+    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-120b', 'qwen/qwen3-32b'],
+    defaultModel: 'llama-3.3-70b-versatile',
+    needsKey: true, keyUrl: 'https://console.groq.com/keys', keyHint: 'gsk_…',
+  },
+  gemini: {
+    label: 'Google Gemini', icon: '♊',
+    desc: 'Googles gratis-nivå via AI Studio.',
+    type: 'openai', base: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    models: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-pro'],
+    defaultModel: 'gemini-2.5-flash',
+    needsKey: true, keyUrl: 'https://aistudio.google.com/app/apikey', keyHint: 'AIza…',
+  },
+  cerebras: {
+    label: 'Cerebras', icon: '🧠',
+    desc: 'Världens snabbaste inferens, gratis nivå.',
+    type: 'openai', base: 'https://api.cerebras.ai/v1',
+    models: ['llama-3.3-70b', 'llama3.1-8b', 'qwen-3-235b-a22b-instruct-2507'],
+    defaultModel: 'llama-3.3-70b',
+    needsKey: true, keyUrl: 'https://cloud.cerebras.ai/', keyHint: 'csk-…',
+  },
+  openrouter: {
+    label: 'OpenRouter', icon: '🛰️',
+    desc: 'Massor av :free-modeller med en nyckel.',
+    type: 'openai', base: 'https://openrouter.ai/api/v1',
+    models: ['meta-llama/llama-3.3-70b-instruct:free', 'deepseek/deepseek-chat-v3-0324:free', 'google/gemma-3-27b-it:free', 'qwen/qwen3-235b-a22b:free'],
+    defaultModel: 'meta-llama/llama-3.3-70b-instruct:free',
+    needsKey: true, keyUrl: 'https://openrouter.ai/keys', keyHint: 'sk-or-…',
+  },
+  github: {
+    label: 'GitHub Models', icon: '🐙',
+    desc: 'GPT-4o m.fl. gratis med GitHub-konto (PAT-token).',
+    type: 'openai', base: 'https://models.github.ai/inference',
+    models: ['openai/gpt-4o-mini', 'openai/gpt-4o', 'meta/Llama-3.3-70B-Instruct'],
+    defaultModel: 'openai/gpt-4o-mini',
+    needsKey: true, keyUrl: 'https://github.com/settings/tokens', keyHint: 'ghp_…',
+  },
+  mistral: {
+    label: 'Mistral', icon: '🌀',
+    desc: 'Fransk EU-AI med gratis-nivå (La Plateforme).',
+    type: 'openai', base: 'https://api.mistral.ai/v1',
+    models: ['mistral-small-latest', 'mistral-medium-latest', 'open-mistral-nemo'],
+    defaultModel: 'mistral-small-latest',
+    needsKey: true, keyUrl: 'https://console.mistral.ai/api-keys/', keyHint: '…',
+  },
+  huggingface: {
+    label: 'Hugging Face', icon: '🤗',
+    desc: 'Öppna modeller via HF Router, gratis med token.',
+    type: 'openai', base: 'https://router.huggingface.co/v1',
+    models: ['meta-llama/Llama-3.1-8B-Instruct', 'Qwen/Qwen3-32B', 'deepseek-ai/DeepSeek-V3.2'],
+    defaultModel: 'meta-llama/Llama-3.1-8B-Instruct',
+    needsKey: true, keyUrl: 'https://huggingface.co/settings/tokens', keyHint: 'hf_…',
+  },
+};
+
+const SYSTEM_PROMPT = [
+  'Du är J.A.R.V.I.S. — en avancerad, hjälpsam AI-assistent i Iron Man-stil, byggd enbart på kostnadsfria AI-tjänster.',
+  'Svara alltid på svenska om inte användaren skriver på ett annat språk.',
+  'Var koncis men varm, gärna med en liten gnutta torr JARVIS-humor ("sir"/"fröken" sparsamt).',
+  'Du kan Markdown: **fetstil**, listor, `kod` och kodblock.',
+  'Användaren kan använda verktygskommandon i chatten: /väder <ort>, /wiki <ämne>, /skämt, /kattfakta, /bild <beskrivning>, /tid, /kasta, /hjälp.',
+  'Om någon frågar vad du är: förklara att du är en JARVIS-klon som drivs av gratis AI-tjänster (Pollinations, Puter, Groq, Gemini, OpenRouter, Cerebras, GitHub Models, Mistral, Hugging Face).',
+].join('\n');
+
+function providerReady(pid) {
+  const p = PROVIDERS[pid];
+  if (!p) return false;
+  if (p.type === 'puter') return !window.__puterFailed;
+  if (p.needsKey) return !!(prefs.keys[pid] && prefs.keys[pid].trim());
+  return true;
+}
+
+function buildOrder() {
+  const rest = Object.keys(PROVIDERS).filter(id => id !== prefs.provider);
+  const pri = ['pollinations', 'puter', 'groq', 'gemini', 'cerebras', 'openrouter', 'github', 'mistral', 'huggingface'];
+  rest.sort((a, b) => pri.indexOf(a) - pri.indexOf(b));
+  const all = [prefs.provider, ...rest];
+  return prefs.failover ? all.filter(providerReady) : [prefs.provider].filter(providerReady);
+}
+
+function currentModel(pid) {
+  return (prefs.models[pid] || '').trim() || PROVIDERS[pid].defaultModel;
+}
+
+/* ═══════════════ ANROP: OpenAI-kompatibla (med streaming) ═══════════════ */
+async function callOpenAI(pid, messages, signal, onDelta) {
+  const p = PROVIDERS[pid];
+  const base = p.base.replace(/\/+$/, '');
+  const key = (prefs.keys[pid] || '').trim();
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers['Authorization'] = 'Bearer ' + key;
+  const body = { model: currentModel(pid), messages, temperature: 0.7, max_tokens: 2048 };
+
+  // försök streama först
+  try {
+    const res = await fetch(base + '/chat/completions', {
+      method: 'POST', headers, signal,
+      body: JSON.stringify({ ...body, stream: true }),
+    });
+    if (!res.ok) throw httpErr(res, await safeText(res));
+    if (!res.body) throw new Error('ingen ström');
+    const text = await readSSE(res.body, onDelta, signal);
+    if (text.trim()) return text;
+    throw new Error('tomt strömsvar');
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    // fallback utan strömning
+    const res = await fetch(base + '/chat/completions', {
+      method: 'POST', headers, signal, body: JSON.stringify(body),
+    });
+    if (!res.ok) throw httpErr(res, await safeText(res));
+    const j = await res.json();
+    const text = j?.choices?.[0]?.message?.content;
+    if (!text || !String(text).trim()) throw new Error('tomt svar');
+    const out = String(text);
+    if (onDelta) await typewrite(onDelta, out, signal);
+    return out;
+  }
+}
+
+function httpErr(res, bodyText) {
+  let extra = '';
+  try { const j = JSON.parse(bodyText); extra = j?.error?.message || j?.message || ''; } catch {}
+  const e = new Error('HTTP ' + res.status + (extra ? ' — ' + extra.slice(0, 140) : ''));
+  e.status = res.status;
+  return e;
+}
+async function safeText(res) { try { return await res.text(); } catch { return ''; } }
+
+async function readSSE(body, onDelta, signal) {
+  const reader = body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', full = '';
+  for (;;) {
+    if (signal?.aborted) { try { reader.cancel(); } catch {} throw new DOMException('avbruten', 'AbortError'); }
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') return full;
+      try {
+        const j = JSON.parse(data);
+        const d = j?.choices?.[0]?.delta?.content ?? j?.choices?.[0]?.message?.content ?? '';
+        if (d) { full += d; if (onDelta) onDelta(full); }
+      } catch { /* delvis JSON — ignoreras */ }
     }
-    if (shake > 0) shake *= 0.88;
-    if (shake < 0.3) shake = 0;
+  }
+  return full;
+}
 
-    if (state !== STATE.PLAY) return;
+// långsam "typewriter" för icke-strömmande svar
+async function typewrite(onDelta, text, signal) {
+  const step = Math.max(2, Math.round(text.length / 90));
+  for (let i = step; i < text.length + step; i += step) {
+    if (signal?.aborted) throw new DOMException('avbruten', 'AbortError');
+    onDelta(text.slice(0, i));
+    await new Promise(r => setTimeout(r, 14));
+  }
+  onDelta(text);
+}
 
-    // Progressive speed: calm start → steadily faster the further you run.
-    // Ease-out curve so early gains feel clear, late game approaches MAX_SPEED.
-    const progress = Math.min(1, distance / 9000);          // ~full ramp after a long run
-    const eased = 1 - Math.pow(1 - progress, 1.55);        // faster early, smooth late
-    speed = baseSpeed + (MAX_SPEED - baseSpeed) * eased;
-    distance += speed * 0.30;
-    score = distance + fishCount * 25;
-    updateHud();
+/* ═══════════════ ANROP: Pollinations GET (sista utväg) ═══════════════ */
+async function callPollinationsGET(messages, signal, onDelta) {
+  const sys = messages.find(m => m.role === 'system')?.content || '';
+  const last = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  const url = 'https://text.pollinations.ai/' + encodeURIComponent(last.slice(0, 1500))
+    + '?model=' + encodeURIComponent(currentModel('pollinations'))
+    + '&system=' + encodeURIComponent(sys.slice(0, 800));
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw httpErr(res, await safeText(res));
+  const text = (await res.text()).trim();
+  if (!text) throw new Error('tomt svar');
+  if (onDelta) await typewrite(onDelta, text, signal);
+  return text;
+}
 
-    // cat physics — slightly softer apex, snappier land
-    const inAir = !cat.onGround;
-    cat.vy += inAir && cat.vy > 0 ? gravity * 1.15 : gravity;
-    cat.y += cat.vy;
-    if (cat.y >= GROUND_Y - cat.h) {
-      cat.y = GROUND_Y - cat.h;
-      cat.vy = 0;
-      if (!cat.onGround) {
-        // landing dust
-        for (let i = 0; i < 5; i++) {
-          particles.push({
-            x: cat.x + rand(10, cat.w - 10),
-            y: GROUND_Y - 2,
-            vx: rand(-2, 2),
-            vy: rand(-1.5, 0),
-            life: rand(10, 18),
-            max: 18,
-            color: 'rgba(160,130,70,0.7)',
-            size: rand(2, 4),
-          });
-        }
-        // land on a grounded pose
-        cat.frame = 0;
-        cat.frameTimer = 0;
-      }
-      cat.onGround = true;
+/* ═══════════════ ANROP: Puter.js ═══════════════ */
+async function waitForPuter(ms = 4000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if (window.puter?.ai?.chat) return true;
+    if (window.__puterFailed) return false;
+    await new Promise(r => setTimeout(r, 120));
+  }
+  return !!window.puter?.ai?.chat;
+}
+
+async function callPuter(messages, signal, onDelta) {
+  if (!(await waitForPuter())) throw new Error('Puter.js kunde inte laddas (blockerat?)');
+  const msgs = messages.map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+  const resp = await Promise.race([
+    window.puter.ai.chat(msgs, { model: currentModel('puter') }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('tidsgräns (45s)')), 45000)),
+    ...(signal ? [new Promise((_, rej) => signal.addEventListener('abort', () => rej(new DOMException('avbruten', 'AbortError'))))] : []),
+  ]);
+  let text = resp?.message?.content ?? resp?.text ?? resp;
+  if (Array.isArray(text)) text = text.map(b => b?.text || '').join('');
+  text = String(text || '').trim();
+  if (!text) throw new Error('tomt svar');
+  if (onDelta) await typewrite(onDelta, text, signal);
+  return text;
+}
+
+/* ═══════════════ SAMORDNARE MED FAILOVER ═══════════════ */
+async function askJarvis(messages, signal, statusCb, onDelta) {
+  const order = buildOrder();
+  if (!order.length) throw new Error('Ingen tjänst redo — kontrollera inställningarna (⚙️).');
+  const errors = [];
+  for (const pid of order) {
+    const p = PROVIDERS[pid];
+    statusCb('ANSLUTER → ' + p.label.toUpperCase() + (currentModel(pid) ? ' · ' + currentModel(pid).toUpperCase() : ''), pid);
+    try {
+      let fn;
+      if (p.type === 'puter') fn = () => callPuter(messages, signal, onDelta);
+      else fn = () => callOpenAI(pid, messages, signal, onDelta);
+      const t0 = performance.now();
+      const text = await fn();
+      const ms = Math.round(performance.now() - t0);
+      return { text, provider: pid, ms };
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      errors.push(p.label + ': ' + (e.message || 'okänt fel').slice(0, 120));
+    }
+  }
+  // sista utväg: pollinations enkla GET
+  if (prefs.failover) {
+    statusCb('SISTA UTVÄG → POLLINATIONS/GET', 'pollinations');
+    try {
+      const t0 = performance.now();
+      const text = await callPollinationsGET(messages, signal, onDelta);
+      return { text, provider: 'pollinations', ms: Math.round(performance.now() - t0) };
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      errors.push('Pollinations/GET: ' + (e.message || '').slice(0, 100));
+    }
+  }
+  const err = new Error('Alla tjänster svarade inte.\n' + errors.map(e => '• ' + e).join('\n'));
+  err.list = errors;
+  throw err;
+}
+
+/* ═══════════════ GRATIS-VERKTYG (slash-kommandon) ═══════════════ */
+const WEATHER = {
+  0: ['☀️', 'klart'], 1: ['🌤️', 'mestadels klart'], 2: ['⛅', 'halvklart'], 3: ['☁️', 'mulet'],
+  45: ['🌫️', 'dimma'], 48: ['🌫️', 'rimfrost & dimma'],
+  51: ['🌦️', 'lätt duggregn'], 53: ['🌦️', 'duggregn'], 55: ['🌧️', 'tätt duggregn'],
+  56: ['🌧️', 'underkylt duggregn'], 57: ['🌧️', 'underkylt duggregn'],
+  61: ['🌧️', 'lätt regn'], 63: ['🌧️', 'regn'], 65: ['🌧️', 'kraftigt regn'],
+  66: ['🌧️', 'underkylt regn'], 67: ['🌧️', 'underkylt regn'],
+  71: ['🌨️', 'lätt snöfall'], 73: ['❄️', 'snöfall'], 75: ['❄️', 'ymnigt snöfall'], 77: ['❄️', 'snökorn'],
+  80: ['🌦️', 'lätta regnskurar'], 81: ['🌧️', 'regnskurar'], 82: ['⛈️', 'skyfall'],
+  85: ['🌨️', 'snöbyar'], 86: ['🌨️', 'kraftiga snöbyar'],
+  95: ['⛈️', 'åska'], 96: ['⛈️', 'åska med hagel'], 99: ['⛈️', 'åska med kraftigt hagel'],
+};
+
+async function toolWeather(place) {
+  const g = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(place) + '&count=1&language=sv').then(r => r.json());
+  const hit = g?.results?.[0];
+  if (!hit) return 'Jag hittade tyvärr inte platsen **' + place + '**. Prova med en större stad i närheten.';
+  const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${hit.latitude}&longitude=${hit.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`).then(r => r.json());
+  const c = w?.current;
+  if (!c) return 'Vädertjänsten svarade konstigt. Försök igen om en stund.';
+  const [emoji, desc] = WEATHER[c.weather_code] || ['🌡️', 'okänt väder'];
+  return `${emoji} **${hit.name}, ${hit.country}** — ${desc}\n` +
+    `• Temperatur: **${c.temperature_2m}°C** (känns som ${c.apparent_temperature}°C)\n` +
+    `• Vind: ${c.wind_speed_10m} m/s\n• Luftfuktighet: ${c.relative_humidity_2m}%\n` +
+    `_Källa: Open-Meteo (gratis API, ingen nyckel)_`;
+}
+
+async function toolWiki(q) {
+  const s = await fetch('https://sv.wikipedia.org/w/api.php?action=opensearch&search=' + encodeURIComponent(q) + '&limit=1&namespace=0&format=json&origin=*').then(r => r.json());
+  const title = s?.[1]?.[0];
+  if (!title) return 'Ingen träff på svenska Wikipedia för **' + q + '**.';
+  const sum = await fetch('https://sv.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title)).then(r => r.json());
+  if (!sum?.extract) return 'Hittade artikeln **' + title + '** men ingen sammanfattning.';
+  return `📖 **${sum.title}** _(Wikipedia)_\n${sum.extract}\n[Läs hela artikeln →](${sum.content_urls?.desktop?.page || 'https://sv.wikipedia.org/wiki/' + encodeURIComponent(title)})`;
+}
+
+async function toolJoke() {
+  const j = await fetch('https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit').then(r => r.json());
+  if (j?.error) throw new Error(j.message || 'skämtfel');
+  const text = j.type === 'single' ? j.joke : j.setup + '\n\n_' + j.delivery + '_';
+  return '😄 ' + text + '\n\n_(JokeAPI — gratis, på engelska)_';
+}
+
+const SV_CAT_FACTS = [
+  'Katter spenderar cirka 70 % av livet soandes.',
+  'En katt kan rotera öronen 180 grader tack vare 32 muskler i varje öra.',
+  'Katter har ett extra luktsinneorgan i gommen (Jacobsons organ).',
+  'En katts spinnande kan lugna både katten själv och människor omkring.',
+  'Katter kan hoppa upp till sex gånger sin egen kroppslängd.',
+];
+
+async function toolCatFact() {
+  try {
+    const j = await fetch('https://catfact.ninja/fact').then(r => r.json());
+    if (j?.fact) return '🐱 **Kattfakta:** ' + j.fact + '\n\n_(catfact.ninja — gratis API, på engelska)_';
+    throw new Error('tomt');
+  } catch {
+    return '🐱 **Kattfakta:** ' + SV_CAT_FACTS[Math.floor(Math.random() * SV_CAT_FACTS.length)];
+  }
+}
+
+function toolHelp() {
+  return [
+    '**Kommandon jag förstår direkt:**',
+    '',
+    '| Kommando | Gör | Tjänst |',
+    '|---|---|---|',
+    '| `/väder <ort>` | Aktuellt väder | Open-Meteo 🌤️ |',
+    '| `/wiki <ämne>` | Wikipedia-sammanfattning | Wikipedia 📖 |',
+    '| `/skämt` | Slumpmässigt skämt | JokeAPI 😄 |',
+    '| `/kattfakta` | Slumpmässig kattfakta | catfact.ninja 🐱 |',
+    '| `/bild <beskrivning>` | Genererar en AI-bild | Pollinations 🎨 |',
+    '| `/tid` | Datum & klockslag | Lokalt 🕐 |',
+    '| `/kasta [sidor]` | Slår en tärning | Lokalt 🎲 |',
+    '| `/modeller` | Visar modeller för vald tjänst | Lokalt 📡 |',
+    '| `/status` | Vilka tjänster som är inkopplade | Lokalt 🔌 |',
+    '| `/rensa` | Rensar chatten | Lokalt 🧹 |',
+    '',
+    'Allt annat du skriver går till AI-motorn. Byt motor uppe i hörnet — eller lägg till fler gratisnycklar under ⚙️.',
+  ].join('\n');
+}
+
+function toolStatus() {
+  const rows = Object.entries(PROVIDERS).map(([id, p]) => {
+    const ready = providerReady(id);
+    const why = p.needsKey && !(prefs.keys[id] || '').trim() ? ' (nyckel saknas)' :
+      (p.type === 'puter' && window.__puterFailed ? ' (blockerad)' : '');
+    return `${ready ? '🟢' : '🔴'} **${p.label}**${id === prefs.provider ? ' ← aktiv' : ''}${why}`;
+  });
+  return '**Inkopplade gratis-tjänster:**\n' + rows.join('\n') +
+    '\n\n_Lägg till gratis API-nycklar under ⚙️ för att aktivera fler._';
+}
+
+/* ═══════════════ CHATT-UI ═══════════════ */
+const chatEl = $('#chat');
+const scrollEl = $('#scroll');
+const inputEl = $('#input');
+const reactorEl = $('#reactor');
+const sysStateEl = $('#sysState');
+
+let busy = false;
+let abortCtl = null;
+let recognition = null;
+
+function scrollBottom() { scrollEl.scrollTop = scrollEl.scrollHeight; }
+
+function addMsg(role, text, opts = {}) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'jarvis') + (opts.kind ? ' ' + opts.kind : '');
+  const avatar = role === 'user'
+    ? '<div class="avatar-u">🧑</div>'
+    : '<div class="avatar-j"></div>';
+  div.innerHTML = avatar + '<div style="min-width:0"><div class="bubble">' + (opts.raw ? text : md(text)) + '</div><div class="meta"></div></div>';
+  chatEl.appendChild(div);
+  const meta = div.querySelector('.meta');
+  meta.textContent = metaText(opts);
+  scrollBottom();
+  return { div, bubble: div.querySelector('.bubble'), meta };
+}
+
+function metaText(opts = {}) {
+  const parts = [];
+  if (opts.provider) parts.push((PROVIDERS[opts.provider]?.icon || '🤖') + ' ' + (PROVIDERS[opts.provider]?.label || opts.provider).toUpperCase());
+  if (opts.ms) parts.push(opts.ms + ' MS');
+  parts.push(new Date(opts.ts || Date.now()).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }));
+  return parts.join(' · ');
+}
+
+function setThinkingRow() {
+  const row = addMsg('jarvis', '', { raw: true });
+  row.bubble.innerHTML = '<span class="thinking-ind"><i></i><i></i><i></i></span> <span style="font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.1em">JARVIS TÄNKER…</span>';
+  return row;
+}
+
+function pushLog(role, text, opts = {}) {
+  chatLog.push({ role, text, provider: opts.provider || null, ms: opts.ms || null, ts: Date.now() });
+  saveChat();
+}
+
+function renderHistory() {
+  chatEl.innerHTML = '';
+  for (const m of chatLog) {
+    addMsg(m.role === 'user' ? 'user' : 'jarvis', m.text, { provider: m.provider, ms: m.ms, ts: m.ts });
+  }
+  if (!chatLog.length) {
+    addMsg('jarvis', [
+      '**Välkommen ombord.** 🤖',
+      '',
+      'Jag är J.A.R.V.I.S. — en gratis AI-assistent byggd av öppna tjänster. Skriv vad du vill, eller prova:',
+      '',
+      '• `/väder Stockholm` — aktuellt väder',
+      '• `/wiki Katt` — slå upp fakta',
+      '• `/bild en katt i rymden` — generera en AI-bild',
+      '• `/hjälp` — alla kommandon',
+      '',
+      'Byt AI-motor i menyn uppe till höger. Fler gratismotorer aktiveras med API-nycklar under ⚙️.',
+    ].join('\n'), { ts: Date.now() });
+  }
+}
+
+/* ═══════════════ STATUSRAD ═══════════════ */
+function setStatus(stateTxt, thinking) {
+  sysStateEl.textContent = stateTxt;
+  reactorEl.classList.toggle('thinking', !!thinking);
+}
+function refreshStatusbar() {
+  const pid = prefs.provider;
+  $('#stProvider').textContent = 'MOTOR: ' + (PROVIDERS[pid]?.label || pid).toUpperCase();
+  $('#stModel').textContent = 'MODELL: ' + (currentModel(pid) || '—').toUpperCase();
+  $('#stVoice').textContent = 'RÖST: ' + (prefs.voice ? 'PÅ' : 'AV');
+}
+function setLatency(ms) { $('#stLatency').textContent = 'SVARSTID: ' + (ms ? ms + ' MS' : '—'); }
+
+/* ═══════════════ RÖST ═══════════════ */
+function speak(text) {
+  if (!prefs.voice || !('speechSynthesis' in window)) return;
+  const clean = stripForSpeech(text);
+  if (!clean) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = 'sv-SE';
+  u.rate = 1.02; u.pitch = 0.9;
+  const v = speechSynthesis.getVoices().find(v => v.lang?.startsWith('sv')) ||
+            speechSynthesis.getVoices().find(v => v.lang?.startsWith('en'));
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+if ('speechSynthesis' in window) speechSynthesis.getVoices();
+
+function setupMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const btn = $('#micBtn');
+  if (!SR) { btn.disabled = true; btn.title = 'Taligenkänning stöds inte i denna webbläsare'; return; }
+  recognition = new SR();
+  recognition.lang = 'sv-SE';
+  recognition.interimResults = false;
+  recognition.onresult = e => {
+    const t = e.results?.[0]?.[0]?.transcript;
+    if (t) { inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + t; autoGrow(); inputEl.focus(); }
+  };
+  recognition.onend = () => btn.classList.remove('mic-on');
+  recognition.onerror = () => { btn.classList.remove('mic-on'); toast('Mikrofonen kunde inte användas.'); };
+  btn.addEventListener('click', () => {
+    try {
+      if (btn.classList.contains('mic-on')) { recognition.stop(); return; }
+      recognition.start();
+      btn.classList.add('mic-on');
+      toast('🎙️ Lyssnar — prata svenska…');
+    } catch { /* redan igång */ }
+  });
+}
+
+/* ═══════════════ HUVUDFLODE ═══════════════ */
+async function handleSend() {
+  const text = inputEl.value.trim();
+  if (!text || busy) return;
+  inputEl.value = ''; autoGrow();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+
+  addMsg('user', text, { ts: Date.now() });
+  pushLog('user', text);
+
+  // slash-kommando?
+  if (text.startsWith('/')) {
+    const done = await handleCommand(text);
+    if (done) return;
+  }
+
+  await askAI(text);
+}
+
+async function askAI(text) {
+  busy = true;
+  abortCtl = new AbortController();
+  uiBusy(true);
+  setStatus('TÄNKER…', true);
+
+  const row = setThinkingRow();
+  let shown = '';
+  const onDelta = full => { shown = full; row.bubble.innerHTML = md(full) + '<span class="caret"></span>'; scrollBottom(); };
+
+  const history = chatLog.slice(-22).map(m => ({
+    role: m.role === 'user' ? 'user' : 'assistant',
+    content: String(m.text).slice(0, 4000),
+  }));
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];
+
+  try {
+    const { text: reply, provider, ms } = await askJarvis(
+      messages,
+      abortCtl.signal,
+      (s) => { row.meta.textContent = s; },
+      onDelta,
+    );
+    row.bubble.innerHTML = md(reply);
+    row.meta.textContent = metaText({ provider, ms });
+    setLatency(ms);
+    pushLog('assistant', reply, { provider, ms });
+    setStatus('ONLINE', false);
+    speak(reply);
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      row.bubble.innerHTML = md(shown || '⏹ _Avbrutet av användaren._');
+      row.meta.textContent = metaText({});
+      if (shown) pushLog('assistant', shown);
     } else {
-      cat.onGround = false;
+      row.div.classList.add('error');
+      row.bubble.innerHTML = md(
+        '⚠️ **Ursäkta — jag når inga AI-tjänster just nu.**\n' + (e.message || '') +
+        '\n\n**Tips:**\n• Kontrollera din internetanslutning\n• Öppna ⚙️ och lägg till en gratis API-nyckel (t.ex. Groq eller Gemini) som reserv\n• Prova igen om en liten stund'
+      );
+      row.meta.textContent = metaText({});
     }
-
-    // run animation — stride speeds up with the track (still natural, not frantic)
-    if (cat.onGround) {
-      const speedRatio = speed / ANIM_SPEED_REF;
-      const animRate = RUN_FPS * Math.min(2.1, Math.max(0.85, 0.55 + speedRatio * 0.55));
-      cat.frameTimer += animRate / 60;
-      if (cat.frameTimer >= 1) {
-        cat.frameTimer -= 1;
-        cat.frame = (cat.frame + 1) % 4;
-      }
-    }
-
-    // parallax — smooth background scroll
-    bgOff = (bgOff + speed * 0.16) % (W);
-    groundOff = (groundOff + speed) % 48;
-
-    // spawn — gaps shrink as speed rises so pressure stays fair
-    spawnTimer++;
-    if (spawnTimer >= nextSpawn) {
-      spawnTimer = 0;
-      const last = obstacles[obstacles.length - 1];
-      // keep reaction time roughly stable: gap grows with speed, but less so late-game
-      const minGap = 200 + speed * 22;
-      if (!last || last.x < W - minGap) {
-        spawnObstacle();
-      }
-      // spawn cadence tightens at high speed
-      const speedT = (speed - baseSpeed) / (MAX_SPEED - baseSpeed);
-      nextSpawn = irand(78, 125) - Math.floor(speedT * 40) - Math.min(12, Math.floor(speed * 1.5));
-      if (nextSpawn < 38) nextSpawn = 38;
-    }
-
-    // move obstacles
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      const o = obstacles[i];
-      o.x -= speed;
-      if (!o.passed && o.x + o.w < cat.x) {
-        o.passed = true;
-        score += 10;
-      }
-      if (o.x + o.w < -20) obstacles.splice(i, 1);
-      else {
-        const cb = hitbox({ x: cat.x, y: cat.y, w: cat.w, h: cat.h }, 0.22);
-        const ob = hitbox(o, 0.2);
-        if (overlaps(cb, ob)) {
-          gameOver();
-          return;
-        }
-      }
-    }
-
-    // fishes
-    for (let i = fishes.length - 1; i >= 0; i--) {
-      const f = fishes[i];
-      f.x -= speed;
-      f.bob += 0.1;
-      if (f.x + f.w < -20) { fishes.splice(i, 1); continue; }
-      const fy = f.y + Math.sin(f.bob) * 6;
-      const fb = { x: f.x, y: fy, w: f.w, h: f.h };
-      const cb = { x: cat.x + 8, y: cat.y + 8, w: cat.w - 16, h: cat.h - 12 };
-      if (overlaps(cb, fb)) {
-        fishCount++;
-        score += 25;
-        // sparkle (few particles)
-        for (let k = 0; k < 5; k++) {
-          particles.push({
-            x: f.x + f.w / 2,
-            y: fy + f.h / 2,
-            vx: rand(-3, 3),
-            vy: rand(-4, 1),
-            life: rand(12, 22),
-            max: 22,
-            color: ['#7ec8ff', '#ffe066', '#fff', '#a0e0ff'][irand(0, 3)],
-            size: rand(2, 4),
-          });
-        }
-        fishes.splice(i, 1);
-        updateHud(true);
-      }
-    }
+    setStatus('ONLINE', false);
   }
+  scrollBottom();
+  busy = false;
+  uiBusy(false);
+  inputEl.focus();
+}
 
-  // ── Draw ────────────────────────────────────────────────
-  function drawBackground() {
-    // cheap sky fill (prebuilt gradient)
-    ctx.fillStyle = skyGrad || '#e89060';
-    ctx.fillRect(0, 0, W, GROUND_Y + 10);
+async function handleCommand(input) {
+  const [rawCmd, ...rest] = input.split(/\s+/);
+  const cmd = rawCmd.toLowerCase();
+  const arg = rest.join(' ').trim();
 
-    if (bgStrip && bgStripW > 0) {
-      // Scroll pre-baked tile — 1:1 blit, no live scaling of huge PNG
-      const bw = bgStripW;
-      let x = -((bgOff % bw) + bw) % bw;
-      // at most 2–3 draws cover the screen
-      while (x < W) {
-        ctx.drawImage(bgStrip, x, 0);
-        x += bw;
-      }
-    } else if (img.bg) {
-      // fallback
-      const bh = GROUND_Y + 10;
-      const bw = Math.round((img.bg.width / img.bg.height) * bh);
-      let x = -((bgOff % bw) + bw) % bw;
-      while (x < W) {
-        ctx.drawImage(img.bg, x, 0, bw, bh);
-        x += bw;
-      }
+  const reply = async (fn, kind = 'tool') => {
+    const row = setThinkingRow();
+    setStatus('VERKTYG…', true);
+    try {
+      const out = await fn();
+      row.div.classList.add(kind);
+      row.bubble.innerHTML = typeof out === 'string' ? md(out) : out;
+      row.meta.textContent = metaText({});
+      if (typeof out === 'string') { pushLog('assistant', out); if (kind === 'tool' && out.length < 500) speak(out); }
+    } catch (e) {
+      row.div.classList.add('error');
+      row.bubble.innerHTML = md('⚠️ Verktyget misslyckades: ' + (e.message || 'okänt fel'));
+      row.meta.textContent = metaText({});
     }
-  }
+    setStatus('ONLINE', false);
+    scrollBottom();
+  };
 
-  function drawGround() {
-    // dirt
-    ctx.fillStyle = '#3d2a18';
-    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-
-    // grass strip
-    ctx.fillStyle = '#4a8c3a';
-    ctx.fillRect(0, GROUND_Y, W, 14);
-
-    // simple scrolling grass marks (rects, not paths)
-    ctx.fillStyle = '#5cb04a';
-    const go = ((groundOff % 20) + 20) % 20;
-    for (let x = -go; x < W + 20; x += 20) {
-      ctx.fillRect(x, GROUND_Y - 4, 3, 6);
-      ctx.fillRect(x + 8, GROUND_Y - 2, 2, 4);
+  switch (cmd) {
+    case '/hjälp': case '/hjalp': case '/help': case '/kommandon':
+      await reply(() => toolHelp()); return true;
+    case '/status': case '/tjänster': case '/tjanster':
+      await reply(() => toolStatus()); return true;
+    case '/väder': case '/vader': case '/vädret': case '/vadret':
+      if (!arg) { await reply(() => 'Skriv så här: `/väder Stockholm`'); return true; }
+      await reply(() => toolWeather(arg)); return true;
+    case '/wiki':
+      if (!arg) { await reply(() => 'Skriv så här: `/wiki Katt`'); return true; }
+      await reply(() => toolWiki(arg)); return true;
+    case '/skämt': case '/skamt': case '/joke':
+      await reply(() => toolJoke()); return true;
+    case '/kattfakta': case '/katt':
+      await reply(() => toolCatFact()); return true;
+    case '/tid': case '/klockan':
+      await reply(() => '🕐 Klockan är **' + new Date().toLocaleTimeString('sv-SE') + '**, ' +
+        new Date().toLocaleDateString('sv-SE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '.'); return true;
+    case '/kasta': case '/tärning': case '/tarning': {
+      const sides = Math.min(1000, Math.max(2, parseInt(arg, 10) || 6));
+      await reply(() => '🎲 T' + sides + ' slog… **' + (1 + Math.floor(Math.random() * sides)) + '**!'); return true;
     }
-
-    // dirt band
-    ctx.fillStyle = '#2e1e10';
-    ctx.fillRect(0, GROUND_Y + 28, W, 3);
-    ctx.fillRect(0, GROUND_Y + 48, W, 2);
-
-    // top edge highlight
-    ctx.fillStyle = '#7dcc5a';
-    ctx.fillRect(0, GROUND_Y, W, 3);
-  }
-
-  function drawCat() {
-    // subtle body bob tied to run cycle (contact frames lower, flight frames higher)
-    // frames: 0 contact, 1 push, 2 stretch, 3 gather
-    const bobTable = [1.5, -1.0, -2.5, 0.5];
-    const bob = cat.onGround ? bobTable[cat.frame % 4] : 0;
-
-    // light squash/stretch
-    let scaleX = 1, scaleY = 1;
-    if (cat.onGround) {
-      if (cat.frame === 0) { scaleX = 1.04; scaleY = 0.96; }      // land/contact
-      else if (cat.frame === 2) { scaleX = 0.97; scaleY = 1.04; } // stretch stride
-    } else {
-      // airborne: stretch on rise, slight squash near peak/fall
-      if (cat.vy < -2) { scaleX = 0.96; scaleY = 1.06; }
-      else if (cat.vy > 2) { scaleX = 1.03; scaleY = 0.97; }
-      else { scaleX = 1.0; scaleY = 1.02; }
-    }
-
-    // shadow first
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    const airLift = Math.max(0, (GROUND_Y - cat.h) - cat.y);
-    const sw = cat.onGround ? cat.w * 0.52 : cat.w * Math.max(0.28, 0.5 - airLift * 0.004);
-    ctx.beginPath();
-    ctx.ellipse(cat.x + cat.w / 2, GROUND_Y - 2, sw / 2, 4.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    let drawY = cat.y + bob;
-
-    if (state === STATE.OVER) {
-      ctx.translate(cat.x + cat.w / 2, cat.y + cat.h / 2);
-      ctx.rotate(-0.55);
-      ctx.translate(-(cat.x + cat.w / 2), -(cat.y + cat.h / 2));
-      ctx.globalAlpha = 0.92;
-    }
-
-    // pivot from bottom-center so squash stays grounded
-    const pivotX = cat.x + cat.w / 2;
-    const pivotY = drawY + cat.h;
-    ctx.translate(pivotX, pivotY);
-    ctx.scale(scaleX, scaleY);
-    ctx.translate(-pivotX, -pivotY);
-
-    const drawSprite = (im, dx, dy, dw, dh) => {
-      if (!im) return false;
-      const aspect = im.width / im.height;
-      let w = dw, h = dh;
-      if (w / h > aspect) w = h * aspect;
-      else h = w / aspect;
-      const ox = dx + (dw - w) / 2;
-      const oy = dy + (dh - h);
-      ctx.drawImage(im, ox, oy, w, h);
+    case '/modeller': {
+      await reply(() => {
+        const pid = prefs.provider, p = PROVIDERS[pid];
+        const list = (MODEL_CACHE[pid] || p.models).map(m => '• `' + m + '`').join('\n');
+        return '**Modeller för ' + p.label + ':**\n' + list + '\n\n_Skriv valfri modell i rutan uppe till höger._';
+      });
       return true;
-    };
-
-    if (state === STATE.OVER && img.idle) {
-      drawSprite(img.idle, cat.x, drawY, cat.w, cat.h);
-    } else if (!cat.onGround && img.jump) {
-      drawSprite(img.jump, cat.x, drawY, cat.w, cat.h);
-    } else if (img.run) {
-      const fw = img.run.width / 4;
-      const fh = img.run.height;
-      const fi = cat.frame % 4;
-      const aspect = fw / fh;
-      let w = cat.w, h = cat.h;
-      if (w / h > aspect) w = h * aspect;
-      else h = w / aspect;
-      const ox = cat.x + (cat.w - w) / 2;
-      const oy = drawY + (cat.h - h);
-      ctx.drawImage(img.run, fi * fw, 0, fw, fh, ox, oy, w, h);
-    } else if (img.idle) {
-      drawSprite(img.idle, cat.x, drawY, cat.w, cat.h);
-    } else {
-      ctx.fillStyle = '#a0a8b0';
-      ctx.fillRect(cat.x, drawY, cat.w, cat.h);
     }
-
-    ctx.restore();
-  }
-
-  function drawObstacles() {
-    for (const o of obstacles) {
-      const key = o.type === 'trash' ? 'trash' : 'hydrant';
-      // simple shadow rect
-      ctx.fillStyle = 'rgba(0,0,0,0.18)';
-      ctx.fillRect(o.x + 4, GROUND_Y - 3, o.w - 8, 3);
-      if (img[key]) {
-        ctx.drawImage(img[key], o.x, o.y, o.w, o.h);
-      } else {
-        ctx.fillStyle = o.type === 'trash' ? '#3a8a4a' : '#d03030';
-        ctx.fillRect(o.x, o.y, o.w, o.h);
-      }
-    }
-  }
-
-  function drawFishes() {
-    for (const f of fishes) {
-      const fy = f.y + Math.sin(f.bob) * 6;
-      if (img.fish) {
-        ctx.drawImage(img.fish, f.x, fy, f.w, f.h);
-      } else {
-        ctx.fillStyle = '#7ec8ff';
-        ctx.fillRect(f.x, fy, f.w, f.h);
-      }
-    }
-  }
-
-  function drawParticles() {
-    // hard cap so particle spam never tanks FPS at high speed
-    if (particles.length > 40) particles.length = 40;
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
-      const a = Math.max(0, p.life / p.max);
-      ctx.globalAlpha = a;
-      ctx.fillStyle = p.color;
-      const s = p.size * a;
-      ctx.fillRect(p.x - s * 0.5, p.y - s * 0.5, s, s);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawMenuPreview() {
-    // calm trot preview (~7 fps)
-    const t = performance.now() / 1000;
-    const fi = Math.floor(t * RUN_FPS) % 4;
-    const bobTable = [1.5, -1.0, -2.5, 0.5];
-    const bob = bobTable[fi];
-    const cx = W / 2 - 60;
-
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.beginPath();
-    ctx.ellipse(cx + 60, GROUND_Y - 2, 42, 7, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    if (img.run) {
-      const fw = img.run.width / 4;
-      const fh = img.run.height;
-      const dw = 120, dh = 84;
-      const aspect = fw / fh;
-      let w = dw, h = dh;
-      if (w / h > aspect) w = h * aspect;
-      else h = w / aspect;
-      ctx.drawImage(img.run, fi * fw, 0, fw, fh, cx + (dw - w) / 2, GROUND_Y - h - 8 + bob, w, h);
-    } else if (img.idle) {
-      ctx.drawImage(img.idle, cx, GROUND_Y - 90 + bob, 120, 80);
-    }
-  }
-
-  function draw() {
-    ctx.imageSmoothingEnabled = false;
-    ctx.save();
-    if (shake > 0) {
-      ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-    }
-
-    drawBackground();
-    drawGround();
-
-    if (state === STATE.MENU) {
-      drawMenuPreview();
-      // floating fishes decoration
-      if (img.fish) {
-        const t = performance.now() / 1000;
-        for (let i = 0; i < 3; i++) {
-          const fx = 80 + i * 280 + Math.sin(t + i) * 20;
-          const fy = 80 + Math.sin(t * 1.5 + i * 2) * 18;
-          ctx.globalAlpha = 0.7;
-          ctx.drawImage(img.fish, fx, fy, 40, 32);
-        }
-        ctx.globalAlpha = 1;
-      }
-    } else {
-      drawFishes();
-      drawObstacles();
-      drawCat();
-      drawParticles();
-    }
-
-    ctx.restore();
-  }
-
-  // ── Loop ────────────────────────────────────────────────
-  let lastTs = 0;
-  function loop(ts) {
-    // fixed-ish step: never run more than ~1 update per frame
-    // (avoids spiral-of-death if a frame stutters)
-    if (!lastTs) lastTs = ts;
-    const dt = Math.min(32, ts - lastTs);
-    lastTs = ts;
-    // always one update/draw; physics already tuned for ~60fps
-    if (dt > 0) {
-      update();
-      draw();
-    }
-    requestAnimationFrame(loop);
-  }
-
-  // ── Input ───────────────────────────────────────────────
-  function onJumpInput(e) {
-    if (e && e.type === 'keydown') {
-      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-        e.preventDefault();
-        jump();
-      }
-      if (e.code === 'Enter' && state === STATE.OVER) {
-        startGame();
-      }
-      if (e.code === 'KeyR' && state === STATE.OVER) {
-        startGame();
-      }
-    } else {
-      // click/touch — only jump if not clicking a button
-      if (e && e.target && e.target.closest && e.target.closest('button')) return;
-      jump();
-    }
-  }
-
-  window.addEventListener('keydown', onJumpInput);
-  canvas.addEventListener('pointerdown', onJumpInput);
-  document.getElementById('startBtn').addEventListener('click', startGame);
-  document.getElementById('retryBtn').addEventListener('click', startGame);
-  document.getElementById('menuBtn').addEventListener('click', showMenu);
-
-  // Character select
-  document.querySelectorAll('.brawler-slot').forEach(card => {
-    card.addEventListener('click', (e) => {
-      e.stopPropagation();
-      applyCharacter(card.dataset.char);
-    });
-  });
-
-  // Arrow keys to switch character on menu
-  window.addEventListener('keydown', e => {
-    if (state !== STATE.MENU) return;
-    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
-      e.preventDefault();
-      const ids = Object.keys(CHARACTERS);
-      let idx = ids.indexOf(selectedChar);
-      idx = e.code === 'ArrowLeft' ? (idx - 1 + ids.length) % ids.length : (idx + 1) % ids.length;
-      applyCharacter(ids[idx]);
-    }
-  });
-
-  // Prevent space scrolling
-  window.addEventListener('keydown', e => {
-    if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
-  }, { passive: false });
-
-  // ── Boot / splash loading ───────────────────────────────
-  document.getElementById('bestVal').textContent = best;
-  document.querySelectorAll('.brawler-slot').forEach(el => {
-    el.classList.toggle('selected', el.dataset.char === selectedChar);
-  });
-  // lobby stats filled when syncLobbyStats exists (hoisted via function decl)
-  try { syncLobbyStats(); } catch (e) {}
-
-  const TIPS = [
-    'Samla fiskar. Undvik sopkärl!',
-    'Hoppa med mellanslag eller tryck!',
-    'Välj Silver eller Skugga i menyn!',
-    'Ju längre du springer, desto fortare går det!',
-    'Fiskar ger extra poäng 🐟',
-  ];
-  let tipIdx = 0;
-  const tipEl = document.getElementById('loadTip');
-  const tipTimer = setInterval(() => {
-    tipIdx = (tipIdx + 1) % TIPS.length;
-    if (tipEl) tipEl.textContent = TIPS[tipIdx];
-  }, 2200);
-
-  const loadBar = document.getElementById('loadBar');
-  const loadPct = document.getElementById('loadPct');
-  let displayPct = 0;
-  let targetPct = 0;
-  let loadAnimId = 0;
-
-  function setLoadProgress(p) {
-    targetPct = Math.max(targetPct, Math.min(100, p));
-  }
-
-  function tickLoadBar() {
-    // smooth chase toward target
-    if (displayPct < targetPct) {
-      displayPct += Math.max(0.6, (targetPct - displayPct) * 0.12);
-      if (displayPct > targetPct) displayPct = targetPct;
-    }
-    const v = Math.floor(displayPct);
-    if (loadBar) loadBar.style.width = v + '%';
-    if (loadPct) loadPct.textContent = String(v);
-    if (displayPct < 100 || targetPct < 100) {
-      loadAnimId = requestAnimationFrame(tickLoadBar);
-    }
-  }
-  loadAnimId = requestAnimationFrame(tickLoadBar);
-
-  // Fake early progress so bar feels alive while network loads
-  setLoadProgress(8);
-  setTimeout(() => setLoadProgress(18), 200);
-  setTimeout(() => setLoadProgress(28), 450);
-
-  function loadImageProgress(src, onOne) {
-    return new Promise((res) => {
-      const i = new Image();
-      i.onload = () => { onOne && onOne(); res(i); };
-      i.onerror = () => { console.warn('fail', src); onOne && onOne(); res(null); };
-      i.src = src;
-    });
-  }
-
-  async function bootLoad() {
-    // Collect every URL we need
-    const urls = [
-      'assets/loading_bg.jpg',
-      'assets/loading_logo.png?v=7',
-      SHARED_ASSETS.trash,
-      SHARED_ASSETS.hydrant,
-      SHARED_ASSETS.fish,
-      SHARED_ASSETS.bg,
-      CHARACTERS.silver.run,
-      CHARACTERS.silver.jump,
-      CHARACTERS.silver.idle,
-      CHARACTERS.silver.front,
-      CHARACTERS.dark.run,
-      CHARACTERS.dark.jump,
-      CHARACTERS.dark.idle,
-      CHARACTERS.dark.front,
-    ];
-    let done = 0;
-    const total = urls.length;
-    const bump = () => {
-      done++;
-      // map 0..total → 28..96 so bar finishes after setup
-      setLoadProgress(28 + Math.floor((done / total) * 68));
-    };
-
-    // Load splash art first for instant pretty screen
-    await loadImageProgress(urls[0], bump);
-    await loadImageProgress(urls[1], bump);
-
-    // Parallel rest
-    await Promise.all(urls.slice(2).map(u => loadImageProgress(u, bump)));
-
-    // Wire into game asset system
-    setLoadProgress(96);
-    await loadShared();
-    await Promise.all([loadCharacter('silver'), loadCharacter('dark')]);
-    applyCharacter(selectedChar);
-    resetGame();
-
-    setLoadProgress(100);
-    // let bar reach 100 visually
-    await new Promise(r => {
-      const wait = () => {
-        if (displayPct >= 99.5) r();
-        else requestAnimationFrame(wait);
+    case '/bild': case '/generera': {
+      if (!arg) { await reply(() => 'Skriv så här: `/bild en katt i rymden`'); return true; }
+      const row = setThinkingRow();
+      setStatus('MÅLAR…', true);
+      const seed = Math.floor(Math.random() * 999999);
+      const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(arg) +
+        '?width=768&height=512&nologo=true&seed=' + seed;
+      const img = new Image();
+      const finish = ok => {
+        row.div.classList.add('tool');
+        row.bubble.innerHTML = ok
+          ? md('🎨 **' + arg + '** _(Pollinations, gratis)_') + '<br>' +
+            '<a href="' + esc(url) + '" target="_blank" rel="noopener"><img class="gen" src="' + esc(url) + '" alt="' + esc(arg) + '"></a>'
+          : md('⚠️ Bildtjänsten svarade inte. Försök igen eller med en kortare beskrivning.');
+        row.meta.textContent = metaText({});
+        setStatus('ONLINE', false);
+        if (ok) pushLog('assistant', '🎨 Genererade en bild på: ' + arg + ' (' + url + ')');
+        scrollBottom();
       };
-      wait();
-    });
-    await new Promise(r => setTimeout(r, 280));
-
-    clearInterval(tipTimer);
-    cancelAnimationFrame(loadAnimId);
-
-    const splash = document.getElementById('splash');
-    if (splash) splash.classList.add('fade-out');
-    document.getElementById('menuPanel').classList.remove('hidden');
-    document.getElementById('ui').style.pointerEvents = 'auto';
-
-    requestAnimationFrame(loop);
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
+      img.src = url;
+      setTimeout(() => { if (!img.complete) { /* låt onload avgöra */ } }, 100);
+      return true;
+    }
+    case '/rensa': case '/clear':
+      chatLog = []; saveChat();
+      renderHistory();
+      toast('🧹 Chatten rensad.');
+      return true;
+    default:
+      return false; // inte ett kommando → skicka till AI:n
   }
+}
 
-  // While splash is up, don't let UI steal clicks under it
-  document.getElementById('ui').style.pointerEvents = 'none';
-  bootLoad().catch(err => {
-    console.error(err);
-    // fail-open: still start game
-    const splash = document.getElementById('splash');
-    if (splash) splash.classList.add('fade-out');
-    document.getElementById('menuPanel').classList.remove('hidden');
-    document.getElementById('ui').style.pointerEvents = 'auto';
-    loadShared().then(() => Promise.all([loadCharacter('silver'), loadCharacter('dark')])).then(() => {
-      applyCharacter(selectedChar);
-      resetGame();
-      requestAnimationFrame(loop);
+/* ═══════════════ KNAPPAR & INPUT ═══════════════ */
+function uiBusy(on) {
+  $('#sendBtn').style.display = on ? 'none' : '';
+  $('#stopBtn').style.display = on ? '' : 'none';
+}
+
+$('#sendBtn').addEventListener('click', handleSend);
+$('#stopBtn').addEventListener('click', () => { abortCtl?.abort(); });
+
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+function autoGrow() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(132, inputEl.scrollHeight) + 'px';
+}
+inputEl.addEventListener('input', autoGrow);
+
+/* snabbval */
+const CHIPS = [
+  ['💬 Vad kan du?', '/hjälp'],
+  ['🌤️ Väder i Stockholm', '/väder Stockholm'],
+  ['📖 Wiki: Katt', '/wiki Katt'],
+  ['😄 Skämta', '/skämt'],
+  ['🐱 Kattfakta', '/kattfakta'],
+  ['🎨 Bild: katt i rymdskepp', '/bild en pixelart-katt som piloterar ett rymdskepp, neonljus'],
+  ['✍️ Saga om en katt', 'Skriv en kort, mysig saga (max 120 ord) om en katt som springer genom en neonstad på äventyr.'],
+];
+function renderChips() {
+  const el = $('#chips');
+  el.innerHTML = '';
+  for (const [label, cmd] of CHIPS) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = label;
+    b.addEventListener('click', () => {
+      if (busy) { toast('Vänta — JARVIS svarar redan…'); return; }
+      inputEl.value = cmd; autoGrow(); handleSend();
+    });
+    el.appendChild(b);
+  }
+}
+
+/* ═══════════════ TJÄNSTE- & MODELLVAL ═══════════════ */
+const MODEL_CACHE = {};
+
+function fillProviders() {
+  const sel = $('#providerSel');
+  sel.innerHTML = '';
+  for (const [id, p] of Object.entries(PROVIDERS)) {
+    const o = document.createElement('option');
+    o.value = id;
+    o.textContent = p.icon + ' ' + p.label + (p.needsKey ? (prefs.keys[id] ? ' 🔑✓' : ' 🔑') : ' ✓');
+    sel.appendChild(o);
+  }
+  sel.value = prefs.provider;
+}
+$('#providerSel').addEventListener('change', e => {
+  prefs.provider = e.target.value; savePrefs();
+  fillModels(); refreshStatusbar();
+  const p = PROVIDERS[prefs.provider];
+  if (p.needsKey && !(prefs.keys[prefs.provider] || '').trim()) {
+    toast('🔑 ' + p.label + ' kräver en gratis API-nyckel — öppnar inställningar.');
+    openModal();
+  } else {
+    toast('Motor: ' + p.label);
+  }
+});
+
+function fillModels() {
+  const pid = prefs.provider, p = PROVIDERS[pid];
+  const input = $('#modelInput');
+  const dl = $('#modelList');
+  dl.innerHTML = '';
+  const models = MODEL_CACHE[pid] || p.models;
+  for (const m of models) {
+    const o = document.createElement('option');
+    o.value = m; dl.appendChild(o);
+  }
+  input.value = currentModel(pid);
+  input.placeholder = p.needsKey ? 'modell…' : 'modell (valfri)';
+}
+$('#modelInput').addEventListener('change', e => {
+  prefs.models[prefs.provider] = e.target.value.trim();
+  savePrefs(); refreshStatusbar();
+});
+
+/* hämta Pollinations modellista dynamiskt */
+async function fetchPollinationsModels() {
+  try {
+    const res = await fetch('https://text.pollinations.ai/models');
+    if (!res.ok) return;
+    const data = await res.json();
+    const names = (Array.isArray(data) ? data : [])
+      .map(m => (typeof m === 'string' ? m : m?.name)).filter(Boolean);
+    if (names.length) {
+      MODEL_CACHE.pollinations = names;
+      PROVIDERS.pollinations.models = names;
+      if (prefs.provider === 'pollinations') fillModels();
+    }
+  } catch { /* tyst standardlista */ }
+}
+
+/* ═══════════════ INSTÄLLNINGAR ═══════════════ */
+function openModal() { $('#modalWrap').classList.add('open'); }
+function closeModal() { $('#modalWrap').classList.remove('open'); }
+$('#settingsBtn').addEventListener('click', openModal);
+$('#closeModal').addEventListener('click', () => { closeModal(); fillProviders(); refreshStatusbar(); });
+$('#modalWrap').addEventListener('click', e => { if (e.target.id === 'modalWrap') { closeModal(); fillProviders(); refreshStatusbar(); } });
+
+function buildSettings() {
+  const wrap = $('#provList');
+  wrap.innerHTML = '';
+  for (const [id, p] of Object.entries(PROVIDERS)) {
+    const div = document.createElement('div');
+    div.className = 'prov-block';
+    const keySet = !!(prefs.keys[id] || '').trim();
+    div.innerHTML =
+      '<div class="prov-head">' +
+        '<span>' + p.icon + '</span><span class="prov-name">' + esc(p.label) + '</span>' +
+        (p.needsKey
+          ? '<span class="badge key">GRATIS NYCKEL KRÄVS</span>' + (keySet ? '<span class="badge set">NYCKEL SPARAD ✓</span>' : '')
+          : '<span class="badge free">INGEN NYCKEL</span>') +
+      '</div>' +
+      '<div class="prov-desc">' + esc(p.desc) + '</div>' +
+      (p.needsKey ?
+        '<div class="prov-key-row">' +
+          '<input type="password" placeholder="' + esc(p.keyHint || 'API-nyckel') + '" value="' + esc(prefs.keys[id] || '') + '" data-key="' + id + '">' +
+          '<a class="mini-btn" href="' + esc(p.keyUrl) + '" target="_blank" rel="noopener">Hämta gratis nyckel →</a>' +
+          '<button class="mini-btn danger" data-clear="' + id + '">Rensa</button>' +
+        '</div>' : '');
+    wrap.appendChild(div);
+  }
+  wrap.querySelectorAll('input[data-key]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      prefs.keys[inp.dataset.key] = inp.value.trim();
+      savePrefs(); buildSettings();
     });
   });
+  wrap.querySelectorAll('[data-clear]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      prefs.keys[btn.dataset.clear] = '';
+      savePrefs(); buildSettings();
+    });
+  });
+  $('#failoverChk').checked = prefs.failover;
+}
+$('#failoverChk').addEventListener('change', e => { prefs.failover = e.target.checked; savePrefs(); });
+
+$('#wipeBtn').addEventListener('click', () => {
+  if (!confirm('Rensa chatt, nycklar och alla inställningar?')) return;
+  localStorage.removeItem(LS_PREFS); localStorage.removeItem(LS_CHAT);
+  location.reload();
+});
+$('#exportBtn').addEventListener('click', () => {
+  const body = ['# JARVIS-chatt — ' + new Date().toLocaleString('sv-SE'), ''];
+  for (const m of chatLog) body.push('**' + (m.role === 'user' ? '🧑 Du' : '🤖 JARVIS') + '** (' + new Date(m.ts).toLocaleTimeString('sv-SE') + ')\n\n' + m.text, '');
+  const blob = new Blob([body.join('\n')], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'jarvis-chatt.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* röstknapp */
+$('#voiceBtn').addEventListener('click', () => {
+  prefs.voice = !prefs.voice; savePrefs();
+  $('#voiceBtn').classList.toggle('off', !prefs.voice);
+  refreshStatusbar();
+  if (!prefs.voice && 'speechSynthesis' in window) speechSynthesis.cancel();
+  toast(prefs.voice ? '🔊 Röstsvar på' : '🔇 Röstsvar av');
+  if (prefs.voice) speak('Röstmodulen aktiverad, sir.');
+});
+
+/* ═══════════════ UPPSTART ═══════════════ */
+async function boot() {
+  const log = $('#bootLog');
+  const line = (txt, cls = '') => {
+    const d = document.createElement('div');
+    if (cls) d.className = cls;
+    d.textContent = txt;
+    log.appendChild(d);
+  };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  line('> Startar J.A.R.V.I.S. kärna v2.6 …'); await sleep(240);
+  line('> Laddar neuralt gränssnitt … OK', 'ok'); await sleep(200);
+  const ready = Object.keys(PROVIDERS).filter(providerReady);
+  line('> Letar gratis AI-tjänster … ' + ready.length + ' av ' + Object.keys(PROVIDERS).length + ' redo', 'ok'); await sleep(200);
+  line('> Primär motor: ' + PROVIDERS[prefs.provider].label.toUpperCase(), 'ok'); await sleep(180);
+  line('> Röstmodul: ' + (prefs.voice ? 'AKTIV' : 'STANDBY') + ' · Verktyg: 10 ST LADDADE', 'ok'); await sleep(180);
+  line('> Alla system redo. Välkommen tillbaka.', 'warn');
+  await sleep(420);
+  $('#boot').classList.add('done');
+  setTimeout(() => $('#boot').remove(), 600);
+}
+$('#boot').addEventListener('click', () => { $('#boot').classList.add('done'); setTimeout(() => $('#boot').remove(), 500); });
+
+/* init */
+buildSettings();
+fillProviders();
+fillModels();
+refreshStatusbar();
+setLatency(null);
+renderChips();
+renderHistory();
+setupMic();
+boot();
+fetchPollinationsModels();
+inputEl.focus();
+
 })();
 </script>
 </body>

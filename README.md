@@ -1,96 +1,77 @@
-# 🐱 Katt Runner
+# 🤖 J.A.R.V.I.S. — gratis AI-assistent
 
-Ett 2D endless runner där du spelar som **Silver** eller **Skugga**.
+En AI-assistent i Iron Man-stil som du kan **skriva med** — byggd enbart på **gratis AI-tjänster**. Ingen registrering, ingen kostnad, inga hemligheter: en enda `index.html`, helt statisk.
 
-**Nytt:** 🤖 **J.A.R.V.I.S.** (`jarvis.html`) — en AI-assistent du kan skriva med, byggd enbart på gratis AI-tjänster.
+![status](https://img.shields.io/badge/status-online-59ffa0) ![nyckel](https://img.shields.io/badge/api--nyckel-valfri-3fd0ff)
 
-## Spela lokalt (gratis, alltid)
+## Kör lokalt
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Öppna `http://localhost:8080` (spelet) och `http://localhost:8080/jarvis.html` (JARVIS)
+Öppna `http://localhost:8080`
 
-## 🤖 J.A.R.V.I.S. — gratis AI-chatt
+## Motorer (alla gratis)
 
-Chattassistent i Iron Man-stil som drivs av **gratis AI-tjänster** — fungerar direkt utan någon nyckel:
+Fungerar **direkt utan nyckel**:
 
-| Tjänst | Nyckel? | Modell-exempel |
-|--------|---------|----------------|
-| **Pollinations** | Nej ✅ | openai, mistral m.fl. |
-| **Puter.js** | Nej ✅ | GPT-5-nano m.fl. |
-| **Groq** | Ja, gratis | Llama 3.3 70B, Qwen3 |
-| **Google Gemini** | Ja, gratis | Gemini 2.5 Flash |
-| **Cerebras** | Ja, gratis | Llama 3.3 70B |
-| **OpenRouter** | Ja, gratis | `:free`-modeller |
-| **GitHub Models** | Ja, gratis (PAT) | GPT-4o-mini |
-| **Mistral** | Ja, gratis | Mistral Small |
-| **Hugging Face** | Ja, gratis | Llama 3.1 8B |
+| Tjänst | Modeller |
+|--------|----------|
+| 🌸 **Pollinations** | openai, mistral m.fl. (hämtas live) |
+| ☁️ **Puter.js** | GPT-5-nano, GPT-4o-mini m.fl. |
 
-Funktioner:
+Fler gratismotorer aktiveras med en gratis API-nyckel (klistras in under ⚙️ i appen, sparas bara i din webbläsare):
 
-- **Automatisk failover** — svarar en tjänst inte byter JARVIS till nästa automatiskt
+| Tjänst | Modeller | Nyckel |
+|--------|----------|--------|
+| ⚡ **Groq** | Llama 3.3 70B, Qwen3 | [console.groq.com](https://console.groq.com/keys) |
+| ♊ **Google Gemini** | Gemini 2.5 Flash | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| 🧠 **Cerebras** | Llama 3.3 70B | [cloud.cerebras.ai](https://cloud.cerebras.ai/) |
+| 🛰️ **OpenRouter** | `:free`-modeller | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| 🐙 **GitHub Models** | GPT-4o-mini, GPT-4o | [github.com/settings/tokens](https://github.com/settings/tokens) |
+| 🌀 **Mistral** | Mistral Small | [console.mistral.ai](https://console.mistral.ai/api-keys/) |
+| 🤗 **Hugging Face** | Llama 3.1 8B m.fl. | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) |
+
+- **Automatisk failover** — svarar en tjänst inte byter JARVIS automatiskt till nästa och visar vilken motor som svarade
 - **Streaming** av svar där tjänsten stödjer det
-- **Gratis verktyg**: `/väder <ort>` (Open-Meteo), `/wiki <ämne>`, `/skämt` (JokeAPI), `/kattfakta`, `/bild <beskrivning>` (Pollinations-bilder), `/tid`, `/kasta`, `/hjälp`
-- **Röst**: prata med mikrofonen (taligenkänning) och få röstsvar (Web Speech API)
-- Chatthistorik sparas lokalt; API-nycklar lämnar aldrig webbläsaren
 
-## Kontroller
+## Verktyg (gratis API:er utan nyckel)
 
-- **Mellanslag** / **Upp** / **W** / **klick** — hoppa  
-- **← →** i lobbyn — byt katt  
-- **Enter** / **R** — spela igen  
+| Kommando | Gör | Källa |
+|----------|-----|-------|
+| `/väder <ort>` | Aktuellt väder | Open-Meteo 🌤️ |
+| `/wiki <ämne>` | Wikipedia-sammanfattning | Wikipedia 📖 |
+| `/skämt` | Slumpmässigt skämt | JokeAPI 😄 |
+| `/kattfakta` | Kattfakta | catfact.ninja 🐱 |
+| `/bild <beskrivning>` | Genererar AI-bild | Pollinations 🎨 |
+| `/tid`, `/kasta`, `/modeller`, `/status`, `/hjälp`, `/rensa` | Lokala kommandon | — |
 
----
+## Funktioner
 
-## Publicera gratis (välj en)
+- 🎙️ **Röst**: prata in med mikrofonknappen (sv-SE) och få röstsvar upplästa (Web Speech API)
+- 💾 Chatthistorik sparas lokalt i webbläsaren + export till Markdown
+- ⚙️ Inställningspanel för API-nycklar och motorval
+- 🛑 Avbryt-knapp under generering
+- 📱 Responsiv design med animerad arktreaktor och bootsekvens
 
-I den här Agent-miljön blockeras ofta Netlify/Vercel/Surge (TLS), men **GitHub fungerar**. Därför är koden pushad till GitHub.
+## Publicera gratis
 
-### 1) GitHub Pages (rekommenderat, gratis)
+Statisk sajt — ingen build behövs.
 
-Repo: https://github.com/thingiverse12/spelarkivet  
-PR: https://github.com/thingiverse12/spelarkivet/pull/3  
+**GitHub Pages:** Settings → Pages → Deploy from branch → `main` → `/ (root)`.
+Klart på `https://<användare>.github.io/spelarkivet/`
 
-1. Merga PR:n till `main` (eller välj branchen nedan)  
-2. Gå till **Settings → Pages**  
-3. **Source**: Deploy from a branch  
-4. Branch: `main` (eller `arena/01a02dee-spelarkivet`), folder: `/ (root)`  
-5. Save  
-
-Spelet publiceras på ungefär:
-
-`https://thingiverse12.github.io/spelarkivet/`
-
-### 2) Netlify Drop (gratis, ingen CLI)
-
-1. Öppna https://app.netlify.com/drop  
-2. Dra in hela mappen (med `index.html` + `assets/`)  
-3. Klar — du får en `*.netlify.app`-länk  
-
-### 3) Netlify CLI (gratis)
-
-```bash
-netlify login
-netlify deploy --dir=. --prod
-```
-
-(`netlify.toml` finns redan i projektet.)
-
-### 4) Cloudflare Pages / Vercel / Surge
-
-Samma sak: ladda upp den **statiska mappen** (ingen build).  
-Fungerar på din egen dator; kan vara blockerat i vissa sandboxes.
-
----
+**Netlify/Vercel/Cloudflare Pages:** dra in mappen som den är (`netlify.toml` + `_headers` finns redan).
 
 ## Kod
 
 | Fil | Roll |
 |-----|------|
-| `index.html` | Hela spelet |
-| `jarvis.html` | J.A.R.V.I.S. AI-chatt (gratis tjänster) |
-| `assets/` | Sprites, bakgrund, logo |
+| `index.html` | Hela JARVIS-appen (HTML + CSS + JS i en fil) |
 | `netlify.toml` | Netlify-config |
 | `_headers` | Cache/security headers |
+
+## Integritet
+
+API-nycklar sparas **endast i din webbläsare** (localStorage) och skickas bara direkt till vald AI-tjänst. Chattar skickas via respektive gratistjänsts publika API.
