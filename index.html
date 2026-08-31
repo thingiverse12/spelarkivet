@@ -302,6 +302,13 @@
   .side-btn.quest { background: linear-gradient(180deg, #50b0f0, #2060a0); }
   .side-btn.news { background: linear-gradient(180deg, #70d060, #288020); }
   .side-btn.friends { background: linear-gradient(180deg, #f08050, #a03018); }
+  .side-btn.jarvis {
+    background: linear-gradient(180deg, #4ce1ff, #1060a8);
+    box-shadow: 0 4px 0 #082838, 0 0 14px rgba(76, 225, 255, 0.55);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .side-btn.jarvis:active { transform: translateY(2px); }
 
   .side-label {
     font-size: 7px;
@@ -803,6 +810,8 @@
         <div class="side-label">UPPDRAG</div>
       </div>
       <div class="lobby-side-right">
+        <a class="side-btn jarvis" href="jarvis.html" title="Chatta med JARVIS">🤖</a>
+        <div class="side-label">JARVIS</div>
         <div class="side-btn news">📰</div>
         <div class="side-label">NYTT</div>
         <div class="side-btn friends">👥</div>

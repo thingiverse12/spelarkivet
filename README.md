@@ -2,13 +2,39 @@
 
 Ett 2D endless runner där du spelar som **Silver** eller **Skugga**.
 
+**Nytt:** 🤖 **J.A.R.V.I.S.** (`jarvis.html`) — en AI-assistent du kan skriva med, byggd enbart på gratis AI-tjänster.
+
 ## Spela lokalt (gratis, alltid)
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Öppna `http://localhost:8080`
+Öppna `http://localhost:8080` (spelet) och `http://localhost:8080/jarvis.html` (JARVIS)
+
+## 🤖 J.A.R.V.I.S. — gratis AI-chatt
+
+Chattassistent i Iron Man-stil som drivs av **gratis AI-tjänster** — fungerar direkt utan någon nyckel:
+
+| Tjänst | Nyckel? | Modell-exempel |
+|--------|---------|----------------|
+| **Pollinations** | Nej ✅ | openai, mistral m.fl. |
+| **Puter.js** | Nej ✅ | GPT-5-nano m.fl. |
+| **Groq** | Ja, gratis | Llama 3.3 70B, Qwen3 |
+| **Google Gemini** | Ja, gratis | Gemini 2.5 Flash |
+| **Cerebras** | Ja, gratis | Llama 3.3 70B |
+| **OpenRouter** | Ja, gratis | `:free`-modeller |
+| **GitHub Models** | Ja, gratis (PAT) | GPT-4o-mini |
+| **Mistral** | Ja, gratis | Mistral Small |
+| **Hugging Face** | Ja, gratis | Llama 3.1 8B |
+
+Funktioner:
+
+- **Automatisk failover** — svarar en tjänst inte byter JARVIS till nästa automatiskt
+- **Streaming** av svar där tjänsten stödjer det
+- **Gratis verktyg**: `/väder <ort>` (Open-Meteo), `/wiki <ämne>`, `/skämt` (JokeAPI), `/kattfakta`, `/bild <beskrivning>` (Pollinations-bilder), `/tid`, `/kasta`, `/hjälp`
+- **Röst**: prata med mikrofonen (taligenkänning) och få röstsvar (Web Speech API)
+- Chatthistorik sparas lokalt; API-nycklar lämnar aldrig webbläsaren
 
 ## Kontroller
 
@@ -64,6 +90,7 @@ Fungerar på din egen dator; kan vara blockerat i vissa sandboxes.
 | Fil | Roll |
 |-----|------|
 | `index.html` | Hela spelet |
+| `jarvis.html` | J.A.R.V.I.S. AI-chatt (gratis tjänster) |
 | `assets/` | Sprites, bakgrund, logo |
 | `netlify.toml` | Netlify-config |
 | `_headers` | Cache/security headers |

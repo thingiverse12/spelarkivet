@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. — Spelarkivet 🤖</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #040811;
+    --panel: rgba(8, 22, 38, 0.78);
+    --panel-2: rgba(10, 28, 48, 0.9);
+    --line: rgba(80, 200, 255, 0.22);
+    --line-strong: rgba(90, 214, 255, 0.55);
+    --txt: #d7f3ff;
+    --dim: #7fb4cc;
+    --cyan: #3fd0ff;
+    --cyan-2: #9be8ff;
+    --gold: #ffd24a;
+    --red: #ff5470;
+    --ok: #59ffa0;
+    --mono: 'Share Tech Mono', monospace;
+    --head: 'Orbitron', sans-serif;
+    --body: 'Rajdhani', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: var(--body);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── bakgrund: rutnät + scanlines + vignett ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% -10%, rgba(35, 120, 190, 0.22), transparent 60%),
+      linear-gradient(rgba(60, 180, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(60, 180, 255, 0.05) 1px, transparent 1px);
+    background-size: 100% 100%, 44px 44px, 44px 44px;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 60; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+
+  .vignette {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  /* ═══ UPPSTARTSSEKVENS ═══ */
+  #boot {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.5s ease;
+    cursor: pointer;
+  }
+  #boot.done { opacity: 0; pointer-events: none; }
+  #bootInner {
+    width: min(680px, 92vw);
+    font-family: var(--mono);
+    font-size: clamp(12px, 2.4vw, 15px);
+    color: var(--cyan-2);
+    text-shadow: 0 0 8px rgba(63, 208, 255, 0.5);
+  }
+  #bootInner .boot-title {
+    font-family: var(--head);
+    font-size: clamp(20px, 5vw, 34px);
+    letter-spacing: 0.35em;
+    color: #fff;
+    margin-bottom: 18px;
+    text-shadow: 0 0 22px rgba(63, 208, 255, 0.8);
+  }
+  #bootLog div { white-space: pre-wrap; line-height: 1.55; }
+  #bootLog .ok { color: var(--ok); }
+  #bootLog .warn { color: var(--gold); }
+  .caret::after { content: '▊'; animation: blink 0.8s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ═══ REAKTORN ═══ */
+  .reactor {
+    position: relative;
+    width: 58px; height: 58px;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 0 10px rgba(63, 208, 255, 0.45));
+  }
+  .reactor .r-core {
+    position: absolute; inset: 26%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #cdf3ff 28%, #4fc8ff 62%, rgba(30, 110, 180, 0.4) 100%);
+    box-shadow: 0 0 14px 3px rgba(120, 225, 255, 0.9), 0 0 34px 8px rgba(63, 208, 255, 0.35);
+    animation: corePulse 2.6s ease-in-out infinite;
+  }
+  @keyframes corePulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.09); filter: brightness(1.25); }
+  }
+  .reactor .r-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+  }
+  .reactor .r1 {
+    border: 2px solid rgba(110, 220, 255, 0.75);
+    border-top-color: transparent; border-bottom-color: transparent;
+    animation: spin 7s linear infinite;
+  }
+  .reactor .r2 {
+    inset: 8%;
+    border: 1.5px dashed rgba(110, 220, 255, 0.5);
+    animation: spin 12s linear infinite reverse;
+  }
+  .reactor .r3 {
+    inset: -9%;
+    background: repeating-conic-gradient(rgba(95, 210, 255, 0.5) 0deg 4deg, transparent 4deg 30deg);
+    -webkit-mask: radial-gradient(circle, transparent 58%, #000 59%, #000 66%, transparent 67%);
+            mask: radial-gradient(circle, transparent 58%, #000 59%, #000 66%, transparent 67%);
+    animation: spin 20s linear infinite;
+    opacity: 0.8;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .reactor.thinking .r-core { animation-duration: 0.9s; }
+  .reactor.thinking .r1 { animation-duration: 1.6s; }
+  .reactor.thinking .r2 { animation-duration: 2.4s; animation-direction: normal; }
+
+  .reactor.mini { width: 26px; height: 26px; }
+
+  /* ═══ SIDHUVUD ═══ */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px 10px;
+    background: linear-gradient(180deg, rgba(6, 16, 30, 0.95), rgba(6, 16, 30, 0.6));
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+  .brand h1 {
+    font-family: var(--head);
+    font-size: clamp(15px, 3vw, 21px);
+    letter-spacing: 0.28em;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(63, 208, 255, 0.65);
+    white-space: nowrap;
+  }
+  .brand .sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ok); box-shadow: 0 0 8px var(--ok);
+    animation: dotPulse 2s ease-in-out infinite; vertical-align: middle; margin-right: 5px;
+  }
+  @keyframes dotPulse { 50% { opacity: 0.4; } }
+
+  header .controls {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .ctl {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--txt);
+    background: rgba(12, 30, 50, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+    outline: none;
+    max-width: 190px;
+  }
+  select.ctl, input.ctl:focus { border-color: var(--line-strong); }
+  select.ctl option { background: #0a1830; }
+  .icon-btn {
+    width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(12, 30, 50, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--txt);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+  }
+  .icon-btn:hover { border-color: var(--line-strong); box-shadow: 0 0 10px rgba(63, 208, 255, 0.3); }
+  .icon-btn.off { color: var(--dim); opacity: 0.6; }
+
+  /* ═══ CHATTYTA ═══ */
+  main {
+    position: relative; z-index: 5;
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 14px 8px;
+    scroll-behavior: smooth;
+  }
+  #chat { width: min(920px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+  .msg { display: flex; gap: 10px; align-items: flex-start; max-width: 92%; }
+  .msg .bubble {
+    position: relative;
+    padding: 10px 14px;
+    font-size: 16.5px;
+    font-weight: 500;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+  .msg .bubble b { color: #fff; }
+  .msg .bubble code {
+    font-family: var(--mono); font-size: 13px;
+    background: rgba(63, 208, 255, 0.12);
+    border: 1px solid rgba(63, 208, 255, 0.25);
+    border-radius: 4px; padding: 1px 5px;
+  }
+  .msg .bubble pre {
+    margin: 8px 0 4px; padding: 10px 12px;
+    background: rgba(2, 8, 16, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow-x: auto;
+  }
+  .msg .bubble pre code { background: none; border: none; padding: 0; color: var(--cyan-2); }
+  .msg .bubble a { color: var(--gold); }
+  .msg .bubble img.gen {
+    display: block; max-width: min(480px, 100%); border-radius: 8px;
+    border: 1px solid var(--line-strong); margin-top: 8px;
+  }
+  .msg .meta {
+    font-family: var(--mono); font-size: 10px; color: var(--dim);
+    margin-top: 5px; letter-spacing: 0.06em;
+  }
+
+  .msg.jarvis { align-self: flex-start; }
+  .msg.jarvis .bubble {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--cyan);
+    border-radius: 3px 12px 12px 12px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+    box-shadow: 0 0 24px rgba(20, 90, 150, 0.15);
+  }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.user .bubble {
+    background: linear-gradient(180deg, rgba(64, 52, 12, 0.55), rgba(46, 36, 8, 0.7));
+    border: 1px solid rgba(255, 210, 74, 0.35);
+    border-right: 3px solid var(--gold);
+    border-radius: 12px 3px 12px 12px;
+    color: #fff3cf;
+  }
+  .msg.user .meta { text-align: right; }
+  .msg.tool .bubble { border-left-color: var(--ok); }
+  .msg.error .bubble { border-left-color: var(--red); }
+
+  .avatar-j {
+    width: 34px; height: 34px; flex: 0 0 auto; margin-top: 2px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: radial-gradient(circle, rgba(190, 240, 255, 0.95) 18%, rgba(63, 208, 255, 0.55) 45%, rgba(8, 24, 44, 0.9) 78%);
+    box-shadow: 0 0 12px rgba(63, 208, 255, 0.5);
+  }
+  .avatar-u {
+    width: 34px; height: 34px; flex: 0 0 auto; margin-top: 2px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 210, 74, 0.5);
+    background: #241c06;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+
+  /* tänker-indikator */
+  .thinking-ind {
+    display: inline-flex; gap: 5px; align-items: center; height: 22px;
+  }
+  .thinking-ind i {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 7px var(--cyan);
+    animation: hop 1.1s ease-in-out infinite;
+  }
+  .thinking-ind i:nth-child(2) { animation-delay: 0.15s; }
+  .thinking-ind i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes hop { 40% { transform: translateY(-6px); } 80% { transform: translateY(0); } }
+
+  /* ═══ SNABBVAL ═══ */
+  #chips {
+    position: relative; z-index: 5;
+    width: min(920px, 100%); margin: 0 auto;
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 6px 14px 2px;
+  }
+  .chip {
+    font-family: var(--body); font-weight: 600; font-size: 13.5px;
+    color: var(--cyan-2);
+    background: rgba(12, 30, 50, 0.7);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--line-strong); background: rgba(20, 46, 74, 0.9); box-shadow: 0 0 12px rgba(63, 208, 255, 0.25); }
+
+  /* ═══ INMATNING ═══ */
+  #dock {
+    position: relative; z-index: 10;
+    border-top: 1px solid var(--line);
+    background: linear-gradient(0deg, rgba(6, 16, 30, 0.95), rgba(6, 16, 30, 0.65));
+    padding: 10px 14px 8px;
+  }
+  #dockInner { width: min(920px, 100%); margin: 0 auto; }
+  #inputRow { display: flex; gap: 8px; align-items: flex-end; }
+  #input {
+    flex: 1;
+    resize: none;
+    font-family: var(--body); font-size: 16.5px; font-weight: 500;
+    color: var(--txt);
+    background: rgba(10, 26, 44, 0.9);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    outline: none;
+    max-height: 132px;
+    line-height: 1.4;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  #input:focus { border-color: var(--line-strong); box-shadow: 0 0 16px rgba(63, 208, 255, 0.2); }
+  #input::placeholder { color: var(--dim); }
+  .big-btn {
+    height: 44px; min-width: 52px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: linear-gradient(180deg, rgba(33, 96, 150, 0.9), rgba(15, 48, 84, 0.95));
+    color: #eaf9ff; font-size: 19px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.15s ease;
+    flex: 0 0 auto;
+  }
+  .big-btn:hover:not(:disabled) { box-shadow: 0 0 16px rgba(63, 208, 255, 0.45); transform: translateY(-1px); }
+  .big-btn:disabled { opacity: 0.45; cursor: default; }
+  .big-btn.mic-on { border-color: var(--red); background: linear-gradient(180deg, rgba(150, 40, 60, 0.9), rgba(84, 15, 30, 0.95)); }
+  .big-btn.stop { border-color: var(--red); color: #ffd7de; }
+
+  #statusbar {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 10.5px; color: var(--dim);
+    letter-spacing: 0.08em;
+    padding: 7px 4px 0;
+  }
+  #statusbar .sep::before { content: '·'; margin-right: 14px; color: rgba(90, 214, 255, 0.4); }
+
+  /* ═══ INSTÄLLNINGAR ═══ */
+  #modalWrap {
+    position: fixed; inset: 0; z-index: 90;
+    background: rgba(2, 6, 12, 0.75);
+    backdrop-filter: blur(3px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  #modalWrap.open { display: flex; }
+  #modal {
+    width: min(640px, 100%);
+    max-height: 86vh; overflow-y: auto;
+    background: var(--panel-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: 0 0 50px rgba(63, 208, 255, 0.25);
+  }
+  #modal h2 {
+    font-family: var(--head); font-size: 16px; letter-spacing: 0.2em;
+    color: #fff; margin-bottom: 4px;
+  }
+  #modal .m-sub { font-size: 13.5px; color: var(--dim); margin-bottom: 16px; }
+  .prov-block {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 13px;
+    margin-bottom: 10px;
+    background: rgba(8, 20, 36, 0.5);
+  }
+  .prov-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .prov-name { font-weight: 700; font-size: 15.5px; color: #fff; }
+  .badge {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em;
+    padding: 2px 8px; border-radius: 999px;
+    border: 1px solid;
+  }
+  .badge.free { color: var(--ok); border-color: rgba(89, 255, 160, 0.5); }
+  .badge.key { color: var(--gold); border-color: rgba(255, 210, 74, 0.5); }
+  .badge.set { color: var(--cyan-2); border-color: var(--line-strong); }
+  .prov-desc { font-size: 13px; color: var(--dim); margin-top: 3px; }
+  .prov-key-row { display: flex; gap: 8px; margin-top: 9px; align-items: center; flex-wrap: wrap; }
+  .prov-key-row input {
+    flex: 1; min-width: 180px;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--txt);
+    background: rgba(4, 12, 24, 0.9);
+    border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 10px; outline: none;
+  }
+  .prov-key-row input:focus { border-color: var(--line-strong); }
+  .mini-btn {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--cyan-2);
+    background: rgba(12, 30, 50, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 11px;
+    cursor: pointer; text-decoration: none;
+    white-space: nowrap;
+  }
+  .mini-btn:hover { border-color: var(--line-strong); }
+  .mini-btn.danger { color: #ffb3c0; border-color: rgba(255, 84, 112, 0.4); }
+  #modal .m-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  #modal .privacy { font-size: 12px; color: var(--dim); margin-top: 12px; line-height: 1.5; }
+  input[type="checkbox"] { accent-color: var(--cyan); }
+
+  /* toast */
+  #toast {
+    position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(20px);
+    z-index: 95;
+    background: var(--panel-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    color: var(--txt);
+    font-size: 14px; font-weight: 600;
+    padding: 9px 16px;
+    opacity: 0; pointer-events: none;
+    transition: all 0.25s ease;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: rgba(6, 14, 26, 0.6); }
+  ::-webkit-scrollbar-thumb { background: rgba(63, 208, 255, 0.3); border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(63, 208, 255, 0.55); }
+
+  @media (max-width: 640px) {
+    header { gap: 10px; padding: 10px 12px 8px; }
+    .brand .sub { display: none; }
+    .ctl { max-width: 132px; font-size: 11px; padding: 6px 7px; }
+    .msg { max-width: 100%; }
+    #statusbar { font-size: 9.5px; gap: 9px; }
+    #statusbar .sep::before { margin-right: 9px; }
+  }
+</style>
+</head>
+<body>
+<div class="vignette"></div>
+
+<!-- ═══ UPPSTART ═══ -->
+<div id="boot">
+  <div id="bootInner">
+    <div class="boot-title">J.A.R.V.I.S.</div>
+    <div id="bootLog"></div>
+  </div>
+</div>
+
+<!-- ═══ SIDHUVUD ═══ -->
+<header>
+  <div class="brand">
+    <div class="reactor" id="reactor">
+      <div class="r-ring r3"></div>
+      <div class="r-ring r2"></div>
+      <div class="r-ring r1"></div>
+      <div class="r-core"></div>
+    </div>
+    <div>
+      <h1>J.A.R.V.I.S.</h1>
+      <div class="sub">Just A Rather Very Intelligent System · Spelarkivet</div>
+      <div class="sub" style="color:var(--ok)"><span class="status-dot"></span><span id="sysState">ONLINE</span></div>
+    </div>
+  </div>
+  <div class="controls">
+    <select class="ctl" id="providerSel" title="Välj AI-tjänst"></select>
+    <input class="ctl" id="modelInput" list="modelList" title="Modell (valfri)" placeholder="modell">
+    <datalist id="modelList"></datalist>
+    <button class="icon-btn off" id="voiceBtn" title="Röstsvar på/av">🔊</button>
+    <button class="icon-btn" id="settingsBtn" title="Inställningar & API-nycklar">⚙️</button>
+    <a class="icon-btn" href="index.html" title="Till Katt Runner">🐱</a>
+  </div>
+</header>
+
+<!-- ═══ CHATT ═══ -->
+<main id="scroll">
+  <div id="chat"></div>
+</main>
+
+<div id="chips"></div>
+
+<!-- ═══ INMATNING ═══ -->
+<div id="dock">
+  <div id="dockInner">
+    <div id="inputRow">
+      <button class="big-btn" id="micBtn" title="Prata (taligenkänning)">🎙️</button>
+      <textarea id="input" rows="1" placeholder="Skriv till JARVIS… (Enter = skicka, /hjälp = kommandon)"></textarea>
+      <button class="big-btn" id="sendBtn" title="Skicka">➤</button>
+      <button class="big-btn stop hidden" id="stopBtn" title="Stoppa" style="display:none">■</button>
+    </div>
+    <div id="statusbar">
+      <span id="stProvider">MOTOR: —</span>
+      <span class="sep" id="stModel">MODELL: —</span>
+      <span class="sep" id="stLatency">SVARSTID: —</span>
+      <span class="sep" id="stVoice">RÖST: AV</span>
+      <span class="sep" id="stFree">GRATIS-TJÄNSTER: 9</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ INSTÄLLNINGAR ═══ -->
+<div id="modalWrap">
+  <div id="modal">
+    <h2>⚙ INSTÄLLNINGAR</h2>
+    <div class="m-sub">Koppla in gratis AI-tjänster. Nycklar är valfria — JARVIS fungerar direkt utan.</div>
+    <div id="provList"></div>
+    <div class="prov-block">
+      <div class="prov-head">
+        <span class="prov-name">🤖 Automatisk växling</span>
+      </div>
+      <div class="prov-desc" style="margin-top:6px">
+        <label style="display:flex;gap:8px;align-items:center;cursor:pointer">
+          <input type="checkbox" id="failoverChk" checked>
+          Vid fel: byt automatiskt till nästa tillgängliga gratis-tjänst
+        </label>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="mini-btn" id="exportBtn">⬇ Exportera chatt (.md)</button>
+      <button class="mini-btn danger" id="wipeBtn">🗑 Rensa all data</button>
+      <button class="mini-btn" id="closeModal" style="margin-left:auto">Stäng ✕</button>
+    </div>
+    <div class="privacy">
+      🔒 Integritet: API-nycklar sparas <b>endast i din webbläsare</b> (localStorage) och skickas bara direkt
+      till tjänsten du valt. Chattar går via respektive AI-tjänsts API — läs deras integritetspolicy om du är nyfiken.
+      Bilder genereras via Pollinations och är publika per design.
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://js.puter.com/v2/" onerror="window.__puterFailed=true"></script>
+<script>
+(() => {
+'use strict';
+
+/* ═══════════════ HJÄLPFUNKTIONER ═══════════════ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function md(src) {
+  // skydda kodblock först
+  const blocks = [];
+  let t = esc(src);
+  t = t.replace(/```[\w]*\n?([\s\S]*?)```/g, (m, c) => {
+    blocks.push(c.replace(/\n$/, ''));
+    return ' PRE' + (blocks.length - 1) + ' ';
+  });
+  t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  t = t.replace(/(^|\W)\*([^*\n]+)\*/g, '$1<i>$2</i>');
+  t = t.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  t = t.replace(/^### (.*)$/gm, '<b style="color:var(--cyan-2)">$1</b>');
+  t = t.replace(/\n/g, '<br>');
+  t = t.replace(/ PRE(\d+) /g, (m, i) => '<pre><code>' + blocks[+i] + '</code></pre>');
+  return t;
+}
+
+function stripForSpeech(text) {
+  return String(text)
+    .replace(/```[\s\S]*?```/g, ' kodblock. ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, ' länk ')
+    .replace(/[*_`#>~]/g, '')
+    .replace(/[🀀-🫿\u2600-\u27BF\uFE0F]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 800);
+}
+
+let toastTimer = null;
+function toast(msg, ms = 2600) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+/* ═══════════════ LAGRING ═══════════════ */
+const LS_PREFS = 'jarvis.prefs.v2';
+const LS_CHAT  = 'jarvis.chat.v2';
+
+const prefs = loadPrefs();
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(LS_PREFS) || '{}');
+    return {
+      provider: p.provider || 'pollinations',
+      models: p.models || {},
+      keys: p.keys || {},
+      voice: !!p.voice,
+      failover: p.failover !== false,
+    };
+  } catch { return { provider: 'pollinations', models: {}, keys: {}, voice: false, failover: true }; }
+}
+function savePrefs() { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }
+
+let chatLog = [];
+try { chatLog = JSON.parse(localStorage.getItem(LS_CHAT) || '[]'); } catch { chatLog = []; }
+function saveChat() {
+  if (chatLog.length > 120) chatLog = chatLog.slice(-120);
+  localStorage.setItem(LS_CHAT, JSON.stringify(chatLog));
+}
+
+/* ═══════════════ AI-TJÄNSTER ═══════════════ */
+const PROVIDERS = {
+  pollinations: {
+    label: 'Pollinations', icon: '🌸',
+    desc: 'Helt gratis, ingen nyckel. Öppen plattform med flera modeller.',
+    type: 'openai', base: 'https://text.pollinations.ai/openai',
+    models: ['openai', 'mistral'], defaultModel: 'openai',
+    needsKey: false,
+  },
+  puter: {
+    label: 'Puter.js', icon: '☁️',
+    desc: 'Gratis GPT-modeller direkt i webbläsaren, ingen nyckel.',
+    type: 'puter',
+    models: ['gpt-5-nano', 'gpt-4o-mini', 'gpt-4.1-nano'], defaultModel: 'gpt-5-nano',
+    needsKey: false,
+  },
+  groq: {
+    label: 'Groq', icon: '⚡',
+    desc: 'Blixtsnabb gratis-nivå: Llama, Qwen, GPT-OSS m.fl.',
+    type: 'openai', base: 'https://api.groq.com/openai/v1',
+    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-120b', 'qwen/qwen3-32b'],
+    defaultModel: 'llama-3.3-70b-versatile',
+    needsKey: true, keyUrl: 'https://console.groq.com/keys', keyHint: 'gsk_…',
+  },
+  gemini: {
+    label: 'Google Gemini', icon: '♊',
+    desc: 'Googles gratis-nivå via AI Studio.',
+    type: 'openai', base: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    models: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-pro'],
+    defaultModel: 'gemini-2.5-flash',
+    needsKey: true, keyUrl: 'https://aistudio.google.com/app/apikey', keyHint: 'AIza…',
+  },
+  cerebras: {
+    label: 'Cerebras', icon: '🧠',
+    desc: 'Världens snabbaste inferens, gratis nivå.',
+    type: 'openai', base: 'https://api.cerebras.ai/v1',
+    models: ['llama-3.3-70b', 'llama3.1-8b', 'qwen-3-235b-a22b-instruct-2507'],
+    defaultModel: 'llama-3.3-70b',
+    needsKey: true, keyUrl: 'https://cloud.cerebras.ai/', keyHint: 'csk-…',
+  },
+  openrouter: {
+    label: 'OpenRouter', icon: '🛰️',
+    desc: 'Massor av :free-modeller med en nyckel.',
+    type: 'openai', base: 'https://openrouter.ai/api/v1',
+    models: ['meta-llama/llama-3.3-70b-instruct:free', 'deepseek/deepseek-chat-v3-0324:free', 'google/gemma-3-27b-it:free', 'qwen/qwen3-235b-a22b:free'],
+    defaultModel: 'meta-llama/llama-3.3-70b-instruct:free',
+    needsKey: true, keyUrl: 'https://openrouter.ai/keys', keyHint: 'sk-or-…',
+  },
+  github: {
+    label: 'GitHub Models', icon: '🐙',
+    desc: 'GPT-4o m.fl. gratis med GitHub-konto (PAT-token).',
+    type: 'openai', base: 'https://models.github.ai/inference',
+    models: ['openai/gpt-4o-mini', 'openai/gpt-4o', 'meta/Llama-3.3-70B-Instruct'],
+    defaultModel: 'openai/gpt-4o-mini',
+    needsKey: true, keyUrl: 'https://github.com/settings/tokens', keyHint: 'ghp_…',
+  },
+  mistral: {
+    label: 'Mistral', icon: '🌀',
+    desc: 'Fransk EU-AI med gratis-nivå (La Plateforme).',
+    type: 'openai', base: 'https://api.mistral.ai/v1',
+    models: ['mistral-small-latest', 'mistral-medium-latest', 'open-mistral-nemo'],
+    defaultModel: 'mistral-small-latest',
+    needsKey: true, keyUrl: 'https://console.mistral.ai/api-keys/', keyHint: '…',
+  },
+  huggingface: {
+    label: 'Hugging Face', icon: '🤗',
+    desc: 'Öppna modeller via HF Router, gratis med token.',
+    type: 'openai', base: 'https://router.huggingface.co/v1',
+    models: ['meta-llama/Llama-3.1-8B-Instruct', 'Qwen/Qwen3-32B', 'deepseek-ai/DeepSeek-V3.2'],
+    defaultModel: 'meta-llama/Llama-3.1-8B-Instruct',
+    needsKey: true, keyUrl: 'https://huggingface.co/settings/tokens', keyHint: 'hf_…',
+  },
+};
+
+const SYSTEM_PROMPT = [
+  'Du är J.A.R.V.I.S. — en avancerad, hjälpsam AI-assistent i Iron Man-stil, inbyggd i sajten Spelarkivet.',
+  'Svara alltid på svenska om inte användaren skriver på ett annat språk.',
+  'Var koncis men varm, gärna med en liten gnutta torr JARVIS-humor ("sir"/"fröken" sparsamt).',
+  'Du kan Markdown: **fetstil**, listor, `kod` och kodblock.',
+  'Användaren kan använda verktygskommandon i chatten: /väder <ort>, /wiki <ämne>, /skämt, /kattfakta, /bild <beskrivning>, /tid, /kasta, /hjälp.',
+  'Om någon frågar vad du är: förklara att du är en JARVIS-klon som drivs av gratis AI-tjänster (Pollinations, Puter, Groq, Gemini, OpenRouter, Cerebras, GitHub Models, Mistral, Hugging Face).',
+].join('\n');
+
+function providerReady(pid) {
+  const p = PROVIDERS[pid];
+  if (!p) return false;
+  if (p.type === 'puter') return !window.__puterFailed;
+  if (p.needsKey) return !!(prefs.keys[pid] && prefs.keys[pid].trim());
+  return true;
+}
+
+function buildOrder() {
+  const rest = Object.keys(PROVIDERS).filter(id => id !== prefs.provider);
+  const pri = ['pollinations', 'puter', 'groq', 'gemini', 'cerebras', 'openrouter', 'github', 'mistral', 'huggingface'];
+  rest.sort((a, b) => pri.indexOf(a) - pri.indexOf(b));
+  const all = [prefs.provider, ...rest];
+  return prefs.failover ? all.filter(providerReady) : [prefs.provider].filter(providerReady);
+}
+
+function currentModel(pid) {
+  return (prefs.models[pid] || '').trim() || PROVIDERS[pid].defaultModel;
+}
+
+/* ═══════════════ ANROP: OpenAI-kompatibla (med streaming) ═══════════════ */
+async function callOpenAI(pid, messages, signal, onDelta) {
+  const p = PROVIDERS[pid];
+  const base = p.base.replace(/\/+$/, '');
+  const key = (prefs.keys[pid] || '').trim();
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers['Authorization'] = 'Bearer ' + key;
+  const body = { model: currentModel(pid), messages, temperature: 0.7, max_tokens: 2048 };
+
+  // försök streama först
+  try {
+    const res = await fetch(base + '/chat/completions', {
+      method: 'POST', headers, signal,
+      body: JSON.stringify({ ...body, stream: true }),
+    });
+    if (!res.ok) throw httpErr(res, await safeText(res));
+    if (!res.body) throw new Error('ingen ström');
+    const text = await readSSE(res.body, onDelta, signal);
+    if (text.trim()) return text;
+    throw new Error('tomt strömsvar');
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    // fallback utan strömning
+    const res = await fetch(base + '/chat/completions', {
+      method: 'POST', headers, signal, body: JSON.stringify(body),
+    });
+    if (!res.ok) throw httpErr(res, await safeText(res));
+    const j = await res.json();
+    const text = j?.choices?.[0]?.message?.content;
+    if (!text || !String(text).trim()) throw new Error('tomt svar');
+    const out = String(text);
+    if (onDelta) await typewrite(onDelta, out, signal);
+    return out;
+  }
+}
+
+function httpErr(res, bodyText) {
+  let extra = '';
+  try { const j = JSON.parse(bodyText); extra = j?.error?.message || j?.message || ''; } catch {}
+  const e = new Error('HTTP ' + res.status + (extra ? ' — ' + extra.slice(0, 140) : ''));
+  e.status = res.status;
+  return e;
+}
+async function safeText(res) { try { return await res.text(); } catch { return ''; } }
+
+async function readSSE(body, onDelta, signal) {
+  const reader = body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', full = '';
+  for (;;) {
+    if (signal?.aborted) { try { reader.cancel(); } catch {} throw new DOMException('avbruten', 'AbortError'); }
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') return full;
+      try {
+        const j = JSON.parse(data);
+        const d = j?.choices?.[0]?.delta?.content ?? j?.choices?.[0]?.message?.content ?? '';
+        if (d) { full += d; if (onDelta) onDelta(full); }
+      } catch { /* delvis JSON — ignoreras */ }
+    }
+  }
+  return full;
+}
+
+// långsam "typewriter" för icke-strömmande svar
+async function typewrite(onDelta, text, signal) {
+  const step = Math.max(2, Math.round(text.length / 90));
+  for (let i = step; i < text.length + step; i += step) {
+    if (signal?.aborted) throw new DOMException('avbruten', 'AbortError');
+    onDelta(text.slice(0, i));
+    await new Promise(r => setTimeout(r, 14));
+  }
+  onDelta(text);
+}
+
+/* ═══════════════ ANROP: Pollinations GET (sista utväg) ═══════════════ */
+async function callPollinationsGET(messages, signal, onDelta) {
+  const sys = messages.find(m => m.role === 'system')?.content || '';
+  const last = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  const url = 'https://text.pollinations.ai/' + encodeURIComponent(last.slice(0, 1500))
+    + '?model=' + encodeURIComponent(currentModel('pollinations'))
+    + '&system=' + encodeURIComponent(sys.slice(0, 800));
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw httpErr(res, await safeText(res));
+  const text = (await res.text()).trim();
+  if (!text) throw new Error('tomt svar');
+  if (onDelta) await typewrite(onDelta, text, signal);
+  return text;
+}
+
+/* ═══════════════ ANROP: Puter.js ═══════════════ */
+async function waitForPuter(ms = 4000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if (window.puter?.ai?.chat) return true;
+    if (window.__puterFailed) return false;
+    await new Promise(r => setTimeout(r, 120));
+  }
+  return !!window.puter?.ai?.chat;
+}
+
+async function callPuter(messages, signal, onDelta) {
+  if (!(await waitForPuter())) throw new Error('Puter.js kunde inte laddas (blockerat?)');
+  const msgs = messages.map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+  const resp = await Promise.race([
+    window.puter.ai.chat(msgs, { model: currentModel('puter') }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('tidsgräns (45s)')), 45000)),
+    ...(signal ? [new Promise((_, rej) => signal.addEventListener('abort', () => rej(new DOMException('avbruten', 'AbortError'))))] : []),
+  ]);
+  let text = resp?.message?.content ?? resp?.text ?? resp;
+  if (Array.isArray(text)) text = text.map(b => b?.text || '').join('');
+  text = String(text || '').trim();
+  if (!text) throw new Error('tomt svar');
+  if (onDelta) await typewrite(onDelta, text, signal);
+  return text;
+}
+
+/* ═══════════════ SAMORDNARE MED FAILOVER ═══════════════ */
+async function askJarvis(messages, signal, statusCb, onDelta) {
+  const order = buildOrder();
+  if (!order.length) throw new Error('Ingen tjänst redo — kontrollera inställningarna (⚙️).');
+  const errors = [];
+  for (const pid of order) {
+    const p = PROVIDERS[pid];
+    statusCb('ANSLUTER → ' + p.label.toUpperCase() + (currentModel(pid) ? ' · ' + currentModel(pid).toUpperCase() : ''), pid);
+    try {
+      let fn;
+      if (p.type === 'puter') fn = () => callPuter(messages, signal, onDelta);
+      else fn = () => callOpenAI(pid, messages, signal, onDelta);
+      const t0 = performance.now();
+      const text = await fn();
+      const ms = Math.round(performance.now() - t0);
+      return { text, provider: pid, ms };
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      errors.push(p.label + ': ' + (e.message || 'okänt fel').slice(0, 120));
+    }
+  }
+  // sista utväg: pollinations enkla GET
+  if (prefs.failover) {
+    statusCb('SISTA UTVÄG → POLLINATIONS/GET', 'pollinations');
+    try {
+      const t0 = performance.now();
+      const text = await callPollinationsGET(messages, signal, onDelta);
+      return { text, provider: 'pollinations', ms: Math.round(performance.now() - t0) };
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      errors.push('Pollinations/GET: ' + (e.message || '').slice(0, 100));
+    }
+  }
+  const err = new Error('Alla tjänster svarade inte.\n' + errors.map(e => '• ' + e).join('\n'));
+  err.list = errors;
+  throw err;
+}
+
+/* ═══════════════ GRATIS-VERKTYG (slash-kommandon) ═══════════════ */
+const WEATHER = {
+  0: ['☀️', 'klart'], 1: ['🌤️', 'mestadels klart'], 2: ['⛅', 'halvklart'], 3: ['☁️', 'mulet'],
+  45: ['🌫️', 'dimma'], 48: ['🌫️', 'rimfrost & dimma'],
+  51: ['🌦️', 'lätt duggregn'], 53: ['🌦️', 'duggregn'], 55: ['🌧️', 'tätt duggregn'],
+  56: ['🌧️', 'underkylt duggregn'], 57: ['🌧️', 'underkylt duggregn'],
+  61: ['🌧️', 'lätt regn'], 63: ['🌧️', 'regn'], 65: ['🌧️', 'kraftigt regn'],
+  66: ['🌧️', 'underkylt regn'], 67: ['🌧️', 'underkylt regn'],
+  71: ['🌨️', 'lätt snöfall'], 73: ['❄️', 'snöfall'], 75: ['❄️', 'ymnigt snöfall'], 77: ['❄️', 'snökorn'],
+  80: ['🌦️', 'lätta regnskurar'], 81: ['🌧️', 'regnskurar'], 82: ['⛈️', 'skyfall'],
+  85: ['🌨️', 'snöbyar'], 86: ['🌨️', 'kraftiga snöbyar'],
+  95: ['⛈️', 'åska'], 96: ['⛈️', 'åska med hagel'], 99: ['⛈️', 'åska med kraftigt hagel'],
+};
+
+async function toolWeather(place) {
+  const g = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(place) + '&count=1&language=sv').then(r => r.json());
+  const hit = g?.results?.[0];
+  if (!hit) return 'Jag hittade tyvärr inte platsen **' + place + '**. Prova med en större stad i närheten.';
+  const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${hit.latitude}&longitude=${hit.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`).then(r => r.json());
+  const c = w?.current;
+  if (!c) return 'Vädertjänsten svarade konstigt. Försök igen om en stund.';
+  const [emoji, desc] = WEATHER[c.weather_code] || ['🌡️', 'okänt väder'];
+  return `${emoji} **${hit.name}, ${hit.country}** — ${desc}\n` +
+    `• Temperatur: **${c.temperature_2m}°C** (känns som ${c.apparent_temperature}°C)\n` +
+    `• Vind: ${c.wind_speed_10m} m/s\n• Luftfuktighet: ${c.relative_humidity_2m}%\n` +
+    `_Källa: Open-Meteo (gratis API, ingen nyckel)_`;
+}
+
+async function toolWiki(q) {
+  const s = await fetch('https://sv.wikipedia.org/w/api.php?action=opensearch&search=' + encodeURIComponent(q) + '&limit=1&namespace=0&format=json&origin=*').then(r => r.json());
+  const title = s?.[1]?.[0];
+  if (!title) return 'Ingen träff på svenska Wikipedia för **' + q + '**.';
+  const sum = await fetch('https://sv.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title)).then(r => r.json());
+  if (!sum?.extract) return 'Hittade artikeln **' + title + '** men ingen sammanfattning.';
+  return `📖 **${sum.title}** _(Wikipedia)_\n${sum.extract}\n[Läs hela artikeln →](${sum.content_urls?.desktop?.page || 'https://sv.wikipedia.org/wiki/' + encodeURIComponent(title)})`;
+}
+
+async function toolJoke() {
+  const j = await fetch('https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit').then(r => r.json());
+  if (j?.error) throw new Error(j.message || 'skämtfel');
+  const text = j.type === 'single' ? j.joke : j.setup + '\n\n_' + j.delivery + '_';
+  return '😄 ' + text + '\n\n_(JokeAPI — gratis, på engelska)_';
+}
+
+const SV_CAT_FACTS = [
+  'Katter spenderar cirka 70 % av livet soandes. Silver & Skugga är inga undantag.',
+  'En katt kan rotera öronen 180 grader tack vare 32 muskler i varje öra.',
+  'Katter har ett extra luktsinneorgan i gommen (Jacobsons organ).',
+  'En katts spinnande kan lugna både katten själv och människor omkring.',
+  'Katter kan hoppa upp till sex gånger sin egen kroppslängd.',
+];
+
+async function toolCatFact() {
+  try {
+    const j = await fetch('https://catfact.ninja/fact').then(r => r.json());
+    if (j?.fact) return '🐱 **Kattfakta:** ' + j.fact + '\n\n_(catfact.ninja — gratis API, på engelska)_';
+    throw new Error('tomt');
+  } catch {
+    return '🐱 **Kattfakta:** ' + SV_CAT_FACTS[Math.floor(Math.random() * SV_CAT_FACTS.length)];
+  }
+}
+
+function toolHelp() {
+  return [
+    '**Kommandon jag förstår direkt:**',
+    '',
+    '| Kommando | Gör | Tjänst |',
+    '|---|---|---|',
+    '| `/väder <ort>` | Aktuellt väder | Open-Meteo 🌤️ |',
+    '| `/wiki <ämne>` | Wikipedia-sammanfattning | Wikipedia 📖 |',
+    '| `/skämt` | Slumpmässigt skämt | JokeAPI 😄 |',
+    '| `/kattfakta` | Kattfakta (passar Spelarkivet!) | catfact.ninja 🐱 |',
+    '| `/bild <beskrivning>` | Genererar en AI-bild | Pollinations 🎨 |',
+    '| `/tid` | Datum & klockslag | Lokalt 🕐 |',
+    '| `/kasta [sidor]` | Slår en tärning | Lokalt 🎲 |',
+    '| `/modeller` | Visar modeller för vald tjänst | Lokalt 📡 |',
+    '| `/status` | Vilka tjänster som är inkopplade | Lokalt 🔌 |',
+    '| `/rensa` | Rensar chatten | Lokalt 🧹 |',
+    '',
+    'Allt annat du skriver går till AI-motorn. Byt motor uppe i hörnet — eller lägg till fler gratisnycklar under ⚙️.',
+  ].join('\n');
+}
+
+function toolStatus() {
+  const rows = Object.entries(PROVIDERS).map(([id, p]) => {
+    const ready = providerReady(id);
+    const why = p.needsKey && !(prefs.keys[id] || '').trim() ? ' (nyckel saknas)' :
+      (p.type === 'puter' && window.__puterFailed ? ' (blockerad)' : '');
+    return `${ready ? '🟢' : '🔴'} **${p.label}**${id === prefs.provider ? ' ← aktiv' : ''}${why}`;
+  });
+  return '**Inkopplade gratis-tjänster:**\n' + rows.join('\n') +
+    '\n\n_Lägg till gratis API-nycklar under ⚙️ för att aktivera fler._';
+}
+
+/* ═══════════════ CHATT-UI ═══════════════ */
+const chatEl = $('#chat');
+const scrollEl = $('#scroll');
+const inputEl = $('#input');
+const reactorEl = $('#reactor');
+const sysStateEl = $('#sysState');
+
+let busy = false;
+let abortCtl = null;
+let recognition = null;
+
+function scrollBottom() { scrollEl.scrollTop = scrollEl.scrollHeight; }
+
+function addMsg(role, text, opts = {}) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'jarvis') + (opts.kind ? ' ' + opts.kind : '');
+  const avatar = role === 'user'
+    ? '<div class="avatar-u">🧑</div>'
+    : '<div class="avatar-j"></div>';
+  div.innerHTML = avatar + '<div style="min-width:0"><div class="bubble">' + (opts.raw ? text : md(text)) + '</div><div class="meta"></div></div>';
+  chatEl.appendChild(div);
+  const meta = div.querySelector('.meta');
+  meta.textContent = metaText(opts);
+  scrollBottom();
+  return { div, bubble: div.querySelector('.bubble'), meta };
+}
+
+function metaText(opts = {}) {
+  const parts = [];
+  if (opts.provider) parts.push((PROVIDERS[opts.provider]?.icon || '🤖') + ' ' + (PROVIDERS[opts.provider]?.label || opts.provider).toUpperCase());
+  if (opts.ms) parts.push(opts.ms + ' MS');
+  parts.push(new Date(opts.ts || Date.now()).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }));
+  return parts.join(' · ');
+}
+
+function setThinkingRow() {
+  const row = addMsg('jarvis', '', { raw: true });
+  row.bubble.innerHTML = '<span class="thinking-ind"><i></i><i></i><i></i></span> <span style="font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.1em">JARVIS TÄNKER…</span>';
+  return row;
+}
+
+function pushLog(role, text, opts = {}) {
+  chatLog.push({ role, text, provider: opts.provider || null, ms: opts.ms || null, ts: Date.now() });
+  saveChat();
+}
+
+function renderHistory() {
+  chatEl.innerHTML = '';
+  for (const m of chatLog) {
+    addMsg(m.role === 'user' ? 'user' : 'jarvis', m.text, { provider: m.provider, ms: m.ms, ts: m.ts });
+  }
+  if (!chatLog.length) {
+    addMsg('jarvis', [
+      '**Välkommen ombord.** 🤖',
+      '',
+      'Jag är J.A.R.V.I.S. — en gratis AI-assistent byggd av öppna tjänster. Skriv vad du vill, eller prova:',
+      '',
+      '• `/väder Stockholm` — aktuellt väder',
+      '• `/wiki Katt` — slå upp fakta',
+      '• `/bild en katt i rymden` — generera en AI-bild',
+      '• `/hjälp` — alla kommandon',
+      '',
+      'Byt AI-motor i menyn uppe till höger. Fler gratismotorer aktiveras med API-nycklar under ⚙️.',
+    ].join('\n'), { ts: Date.now() });
+  }
+}
+
+/* ═══════════════ STATUSRAD ═══════════════ */
+function setStatus(stateTxt, thinking) {
+  sysStateEl.textContent = stateTxt;
+  reactorEl.classList.toggle('thinking', !!thinking);
+}
+function refreshStatusbar() {
+  const pid = prefs.provider;
+  $('#stProvider').textContent = 'MOTOR: ' + (PROVIDERS[pid]?.label || pid).toUpperCase();
+  $('#stModel').textContent = 'MODELL: ' + (currentModel(pid) || '—').toUpperCase();
+  $('#stVoice').textContent = 'RÖST: ' + (prefs.voice ? 'PÅ' : 'AV');
+}
+function setLatency(ms) { $('#stLatency').textContent = 'SVARSTID: ' + (ms ? ms + ' MS' : '—'); }
+
+/* ═══════════════ RÖST ═══════════════ */
+function speak(text) {
+  if (!prefs.voice || !('speechSynthesis' in window)) return;
+  const clean = stripForSpeech(text);
+  if (!clean) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = 'sv-SE';
+  u.rate = 1.02; u.pitch = 0.9;
+  const v = speechSynthesis.getVoices().find(v => v.lang?.startsWith('sv')) ||
+            speechSynthesis.getVoices().find(v => v.lang?.startsWith('en'));
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+if ('speechSynthesis' in window) speechSynthesis.getVoices();
+
+function setupMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const btn = $('#micBtn');
+  if (!SR) { btn.disabled = true; btn.title = 'Taligenkänning stöds inte i denna webbläsare'; return; }
+  recognition = new SR();
+  recognition.lang = 'sv-SE';
+  recognition.interimResults = false;
+  recognition.onresult = e => {
+    const t = e.results?.[0]?.[0]?.transcript;
+    if (t) { inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + t; autoGrow(); inputEl.focus(); }
+  };
+  recognition.onend = () => btn.classList.remove('mic-on');
+  recognition.onerror = () => { btn.classList.remove('mic-on'); toast('Mikrofonen kunde inte användas.'); };
+  btn.addEventListener('click', () => {
+    try {
+      if (btn.classList.contains('mic-on')) { recognition.stop(); return; }
+      recognition.start();
+      btn.classList.add('mic-on');
+      toast('🎙️ Lyssnar — prata svenska…');
+    } catch { /* redan igång */ }
+  });
+}
+
+/* ═══════════════ HUVUDFLODE ═══════════════ */
+async function handleSend() {
+  const text = inputEl.value.trim();
+  if (!text || busy) return;
+  inputEl.value = ''; autoGrow();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+
+  addMsg('user', text, { ts: Date.now() });
+  pushLog('user', text);
+
+  // slash-kommando?
+  if (text.startsWith('/')) {
+    const done = await handleCommand(text);
+    if (done) return;
+  }
+
+  await askAI(text);
+}
+
+async function askAI(text) {
+  busy = true;
+  abortCtl = new AbortController();
+  uiBusy(true);
+  setStatus('TÄNKER…', true);
+
+  const row = setThinkingRow();
+  let shown = '';
+  const onDelta = full => { shown = full; row.bubble.innerHTML = md(full) + '<span class="caret"></span>'; scrollBottom(); };
+
+  const history = chatLog.slice(-22).map(m => ({
+    role: m.role === 'user' ? 'user' : 'assistant',
+    content: String(m.text).slice(0, 4000),
+  }));
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];
+
+  try {
+    const { text: reply, provider, ms } = await askJarvis(
+      messages,
+      abortCtl.signal,
+      (s) => { row.meta.textContent = s; },
+      onDelta,
+    );
+    row.bubble.innerHTML = md(reply);
+    row.meta.textContent = metaText({ provider, ms });
+    setLatency(ms);
+    pushLog('assistant', reply, { provider, ms });
+    setStatus('ONLINE', false);
+    speak(reply);
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      row.bubble.innerHTML = md(shown || '⏹ _Avbrutet av användaren._');
+      row.meta.textContent = metaText({});
+      if (shown) pushLog('assistant', shown);
+    } else {
+      row.div.classList.add('error');
+      row.bubble.innerHTML = md(
+        '⚠️ **Ursäkta — jag når inga AI-tjänster just nu.**\n' + (e.message || '') +
+        '\n\n**Tips:**\n• Kontrollera din internetanslutning\n• Öppna ⚙️ och lägg till en gratis API-nyckel (t.ex. Groq eller Gemini) som reserv\n• Prova igen om en liten stund'
+      );
+      row.meta.textContent = metaText({});
+    }
+    setStatus('ONLINE', false);
+  }
+  scrollBottom();
+  busy = false;
+  uiBusy(false);
+  inputEl.focus();
+}
+
+async function handleCommand(input) {
+  const [rawCmd, ...rest] = input.split(/\s+/);
+  const cmd = rawCmd.toLowerCase();
+  const arg = rest.join(' ').trim();
+
+  const reply = async (fn, kind = 'tool') => {
+    const row = setThinkingRow();
+    setStatus('VERKTYG…', true);
+    try {
+      const out = await fn();
+      row.div.classList.add(kind);
+      row.bubble.innerHTML = typeof out === 'string' ? md(out) : out;
+      row.meta.textContent = metaText({});
+      if (typeof out === 'string') { pushLog('assistant', out); if (kind === 'tool' && out.length < 500) speak(out); }
+    } catch (e) {
+      row.div.classList.add('error');
+      row.bubble.innerHTML = md('⚠️ Verktyget misslyckades: ' + (e.message || 'okänt fel'));
+      row.meta.textContent = metaText({});
+    }
+    setStatus('ONLINE', false);
+    scrollBottom();
+  };
+
+  switch (cmd) {
+    case '/hjälp': case '/hjalp': case '/help': case '/kommandon':
+      await reply(() => toolHelp()); return true;
+    case '/status': case '/tjänster': case '/tjanster':
+      await reply(() => toolStatus()); return true;
+    case '/väder': case '/vader': case '/vädret': case '/vadret':
+      if (!arg) { await reply(() => 'Skriv så här: `/väder Stockholm`'); return true; }
+      await reply(() => toolWeather(arg)); return true;
+    case '/wiki':
+      if (!arg) { await reply(() => 'Skriv så här: `/wiki Katt`'); return true; }
+      await reply(() => toolWiki(arg)); return true;
+    case '/skämt': case '/skamt': case '/joke':
+      await reply(() => toolJoke()); return true;
+    case '/kattfakta': case '/katt':
+      await reply(() => toolCatFact()); return true;
+    case '/tid': case '/klockan':
+      await reply(() => '🕐 Klockan är **' + new Date().toLocaleTimeString('sv-SE') + '**, ' +
+        new Date().toLocaleDateString('sv-SE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '.'); return true;
+    case '/kasta': case '/tärning': case '/tarning': {
+      const sides = Math.min(1000, Math.max(2, parseInt(arg, 10) || 6));
+      await reply(() => '🎲 T' + sides + ' slog… **' + (1 + Math.floor(Math.random() * sides)) + '**!'); return true;
+    }
+    case '/modeller': {
+      await reply(() => {
+        const pid = prefs.provider, p = PROVIDERS[pid];
+        const list = (MODEL_CACHE[pid] || p.models).map(m => '• `' + m + '`').join('\n');
+        return '**Modeller för ' + p.label + ':**\n' + list + '\n\n_Skriv valfri modell i rutan uppe till höger._';
+      });
+      return true;
+    }
+    case '/bild': case '/generera': {
+      if (!arg) { await reply(() => 'Skriv så här: `/bild en katt i rymden`'); return true; }
+      const row = setThinkingRow();
+      setStatus('MÅLAR…', true);
+      const seed = Math.floor(Math.random() * 999999);
+      const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(arg) +
+        '?width=768&height=512&nologo=true&seed=' + seed;
+      const img = new Image();
+      const finish = ok => {
+        row.div.classList.add('tool');
+        row.bubble.innerHTML = ok
+          ? md('🎨 **' + arg + '** _(Pollinations, gratis)_') + '<br>' +
+            '<a href="' + esc(url) + '" target="_blank" rel="noopener"><img class="gen" src="' + esc(url) + '" alt="' + esc(arg) + '"></a>'
+          : md('⚠️ Bildtjänsten svarade inte. Försök igen eller med en kortare beskrivning.');
+        row.meta.textContent = metaText({});
+        setStatus('ONLINE', false);
+        if (ok) pushLog('assistant', '🎨 Genererade en bild på: ' + arg + ' (' + url + ')');
+        scrollBottom();
+      };
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
+      img.src = url;
+      setTimeout(() => { if (!img.complete) { /* låt onload avgöra */ } }, 100);
+      return true;
+    }
+    case '/rensa': case '/clear':
+      chatLog = []; saveChat();
+      renderHistory();
+      toast('🧹 Chatten rensad.');
+      return true;
+    default:
+      return false; // inte ett kommando → skicka till AI:n
+  }
+}
+
+/* ═══════════════ KNAPPAR & INPUT ═══════════════ */
+function uiBusy(on) {
+  $('#sendBtn').style.display = on ? 'none' : '';
+  $('#stopBtn').style.display = on ? '' : 'none';
+}
+
+$('#sendBtn').addEventListener('click', handleSend);
+$('#stopBtn').addEventListener('click', () => { abortCtl?.abort(); });
+
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+function autoGrow() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(132, inputEl.scrollHeight) + 'px';
+}
+inputEl.addEventListener('input', autoGrow);
+
+/* snabbval */
+const CHIPS = [
+  ['💬 Vad kan du?', '/hjälp'],
+  ['🌤️ Väder i Stockholm', '/väder Stockholm'],
+  ['📖 Wiki: Katt', '/wiki Katt'],
+  ['😄 Skämta', '/skämt'],
+  ['🐱 Kattfakta', '/kattfakta'],
+  ['🎨 Bild: katt i rymdskepp', '/bild en pixelart-katt som piloterar ett rymdskepp, neonljus'],
+  ['✍️ Saga om Silver', 'Skriv en kort, mysig saga (max 120 ord) om katten Silver från Katt Runner som springer genom en neonstad.'],
+];
+function renderChips() {
+  const el = $('#chips');
+  el.innerHTML = '';
+  for (const [label, cmd] of CHIPS) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = label;
+    b.addEventListener('click', () => {
+      if (busy) { toast('Vänta — JARVIS svarar redan…'); return; }
+      inputEl.value = cmd; autoGrow(); handleSend();
+    });
+    el.appendChild(b);
+  }
+}
+
+/* ═══════════════ TJÄNSTE- & MODELLVAL ═══════════════ */
+const MODEL_CACHE = {};
+
+function fillProviders() {
+  const sel = $('#providerSel');
+  sel.innerHTML = '';
+  for (const [id, p] of Object.entries(PROVIDERS)) {
+    const o = document.createElement('option');
+    o.value = id;
+    o.textContent = p.icon + ' ' + p.label + (p.needsKey ? (prefs.keys[id] ? ' 🔑✓' : ' 🔑') : ' ✓');
+    sel.appendChild(o);
+  }
+  sel.value = prefs.provider;
+}
+$('#providerSel').addEventListener('change', e => {
+  prefs.provider = e.target.value; savePrefs();
+  fillModels(); refreshStatusbar();
+  const p = PROVIDERS[prefs.provider];
+  if (p.needsKey && !(prefs.keys[prefs.provider] || '').trim()) {
+    toast('🔑 ' + p.label + ' kräver en gratis API-nyckel — öppnar inställningar.');
+    openModal();
+  } else {
+    toast('Motor: ' + p.label);
+  }
+});
+
+function fillModels() {
+  const pid = prefs.provider, p = PROVIDERS[pid];
+  const input = $('#modelInput');
+  const dl = $('#modelList');
+  dl.innerHTML = '';
+  const models = MODEL_CACHE[pid] || p.models;
+  for (const m of models) {
+    const o = document.createElement('option');
+    o.value = m; dl.appendChild(o);
+  }
+  input.value = currentModel(pid);
+  input.placeholder = p.needsKey ? 'modell…' : 'modell (valfri)';
+}
+$('#modelInput').addEventListener('change', e => {
+  prefs.models[prefs.provider] = e.target.value.trim();
+  savePrefs(); refreshStatusbar();
+});
+
+/* hämta Pollinations modellista dynamiskt */
+async function fetchPollinationsModels() {
+  try {
+    const res = await fetch('https://text.pollinations.ai/models');
+    if (!res.ok) return;
+    const data = await res.json();
+    const names = (Array.isArray(data) ? data : [])
+      .map(m => (typeof m === 'string' ? m : m?.name)).filter(Boolean);
+    if (names.length) {
+      MODEL_CACHE.pollinations = names;
+      PROVIDERS.pollinations.models = names;
+      if (prefs.provider === 'pollinations') fillModels();
+    }
+  } catch { /* tyst standardlista */ }
+}
+
+/* ═══════════════ INSTÄLLNINGAR ═══════════════ */
+function openModal() { $('#modalWrap').classList.add('open'); }
+function closeModal() { $('#modalWrap').classList.remove('open'); }
+$('#settingsBtn').addEventListener('click', openModal);
+$('#closeModal').addEventListener('click', () => { closeModal(); fillProviders(); refreshStatusbar(); });
+$('#modalWrap').addEventListener('click', e => { if (e.target.id === 'modalWrap') { closeModal(); fillProviders(); refreshStatusbar(); } });
+
+function buildSettings() {
+  const wrap = $('#provList');
+  wrap.innerHTML = '';
+  for (const [id, p] of Object.entries(PROVIDERS)) {
+    const div = document.createElement('div');
+    div.className = 'prov-block';
+    const keySet = !!(prefs.keys[id] || '').trim();
+    div.innerHTML =
+      '<div class="prov-head">' +
+        '<span>' + p.icon + '</span><span class="prov-name">' + esc(p.label) + '</span>' +
+        (p.needsKey
+          ? '<span class="badge key">GRATIS NYCKEL KRÄVS</span>' + (keySet ? '<span class="badge set">NYCKEL SPARAD ✓</span>' : '')
+          : '<span class="badge free">INGEN NYCKEL</span>') +
+      '</div>' +
+      '<div class="prov-desc">' + esc(p.desc) + '</div>' +
+      (p.needsKey ?
+        '<div class="prov-key-row">' +
+          '<input type="password" placeholder="' + esc(p.keyHint || 'API-nyckel') + '" value="' + esc(prefs.keys[id] || '') + '" data-key="' + id + '">' +
+          '<a class="mini-btn" href="' + esc(p.keyUrl) + '" target="_blank" rel="noopener">Hämta gratis nyckel →</a>' +
+          '<button class="mini-btn danger" data-clear="' + id + '">Rensa</button>' +
+        '</div>' : '');
+    wrap.appendChild(div);
+  }
+  wrap.querySelectorAll('input[data-key]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      prefs.keys[inp.dataset.key] = inp.value.trim();
+      savePrefs(); buildSettings();
+    });
+  });
+  wrap.querySelectorAll('[data-clear]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      prefs.keys[btn.dataset.clear] = '';
+      savePrefs(); buildSettings();
+    });
+  });
+  $('#failoverChk').checked = prefs.failover;
+}
+$('#failoverChk').addEventListener('change', e => { prefs.failover = e.target.checked; savePrefs(); });
+
+$('#wipeBtn').addEventListener('click', () => {
+  if (!confirm('Rensa chatt, nycklar och alla inställningar?')) return;
+  localStorage.removeItem(LS_PREFS); localStorage.removeItem(LS_CHAT);
+  location.reload();
+});
+$('#exportBtn').addEventListener('click', () => {
+  const body = ['# JARVIS-chatt — ' + new Date().toLocaleString('sv-SE'), ''];
+  for (const m of chatLog) body.push('**' + (m.role === 'user' ? '🧑 Du' : '🤖 JARVIS') + '** (' + new Date(m.ts).toLocaleTimeString('sv-SE') + ')\n\n' + m.text, '');
+  const blob = new Blob([body.join('\n')], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'jarvis-chatt.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* röstknapp */
+$('#voiceBtn').addEventListener('click', () => {
+  prefs.voice = !prefs.voice; savePrefs();
+  $('#voiceBtn').classList.toggle('off', !prefs.voice);
+  refreshStatusbar();
+  if (!prefs.voice && 'speechSynthesis' in window) speechSynthesis.cancel();
+  toast(prefs.voice ? '🔊 Röstsvar på' : '🔇 Röstsvar av');
+  if (prefs.voice) speak('Röstmodulen aktiverad, sir.');
+});
+
+/* ═══════════════ UPPSTART ═══════════════ */
+async function boot() {
+  const log = $('#bootLog');
+  const line = (txt, cls = '') => {
+    const d = document.createElement('div');
+    if (cls) d.className = cls;
+    d.textContent = txt;
+    log.appendChild(d);
+  };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  line('> Startar J.A.R.V.I.S. kärna v2.6 …'); await sleep(240);
+  line('> Laddar neuralt gränssnitt … OK', 'ok'); await sleep(200);
+  const ready = Object.keys(PROVIDERS).filter(providerReady);
+  line('> Letar gratis AI-tjänster … ' + ready.length + ' av ' + Object.keys(PROVIDERS).length + ' redo', 'ok'); await sleep(200);
+  line('> Primär motor: ' + PROVIDERS[prefs.provider].label.toUpperCase(), 'ok'); await sleep(180);
+  line('> Röstmodul: ' + (prefs.voice ? 'AKTIV' : 'STANDBY') + ' · Verktyg: 10 ST LADDADE', 'ok'); await sleep(180);
+  line('> Alla system redo. Välkommen tillbaka.', 'warn');
+  await sleep(420);
+  $('#boot').classList.add('done');
+  setTimeout(() => $('#boot').remove(), 600);
+}
+$('#boot').addEventListener('click', () => { $('#boot').classList.add('done'); setTimeout(() => $('#boot').remove(), 500); });
+
+/* init */
+buildSettings();
+fillProviders();
+fillModels();
+refreshStatusbar();
+setLatency(null);
+renderChips();
+renderHistory();
+setupMic();
+boot();
+fetchPollinationsModels();
+inputEl.focus();
+
+})();
+</script>
+</body>
+</html>
