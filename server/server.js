@@ -82,7 +82,7 @@ function serveStatic(req, res) {
     if (!err && stat.isDirectory()) {
       for (const candidate of INDEX_FALLBACKS) {
         const p = path.join(resolved, candidate);
-        if (fs.existsSync(p)) return sendFile(p, res);
+        if (fs.existsSync(p)) return sendFile(p, res, req);
       }
       res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found');
       return;
@@ -91,20 +91,34 @@ function serveStatic(req, res) {
       res.writeHead(404, { 'content-type': 'text/plain' }).end('404 Not Found: ' + pathname);
       return;
     }
-    sendFile(resolved, res);
+    sendFile(resolved, res, req);
   });
 }
 
-function sendFile(file, res) {
+function sendFile(file, res, req) {
   const ext = path.extname(file).toLowerCase();
   const type = MIME[ext] || 'application/octet-stream';
-  const cache = ext === '.html' ? 'no-cache' : 'public, max-age=300';
-  res.writeHead(200, {
-    'content-type': type,
-    'cache-control': cache,
-    'x-content-type-options': 'nosniff'
+  // Always revalidate: a stale main.js means the player keeps running yesterday's
+  // code. The ETag makes that a cheap 304 instead of a re-download.
+  const cache = 'public, max-age=0, must-revalidate';
+  fs.stat(file, (err, stat) => {
+    if (err) {
+      res.writeHead(404, { 'content-type': 'text/plain' }).end('404 Not Found');
+      return;
+    }
+    const etag = `W/"${stat.size.toString(16)}-${Math.round(stat.mtimeMs).toString(16)}"`;
+    if (req && req.headers['if-none-match'] === etag) {
+      res.writeHead(304, { etag, 'cache-control': cache }).end();
+      return;
+    }
+    res.writeHead(200, {
+      'content-type': type,
+      'cache-control': cache,
+      etag,
+      'x-content-type-options': 'nosniff'
+    });
+    fs.createReadStream(file).pipe(res);
   });
-  fs.createReadStream(file).pipe(res);
 }
 
 /* ------------------------------------------------------------------ */

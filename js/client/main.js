@@ -569,15 +569,30 @@ function updateLocal(dt, now) {
   const input = G.input;
   const me = G.myState;
   const locked = input.locked;
+  // controlling = pointer lock is active, OR the browser will not grant it and
+  // we are in keyboard-look mode. Movement must never depend on lock alone.
+  const controlling = input.controlling;
 
   // ---- look -------------------------------------------------------
-  if (locked && !G.chatOpen) {
+  if (controlling && !G.chatOpen) {
     const sens = 0.0022 * (G.profile.settings.sensitivity || 1);
-    G.local.yaw -= input.mouse.dx * sens;
-    G.local.pitch -= input.mouse.dy * sens * (G.profile.settings.invertY ? -1 : 1);
+    let lookX, lookY;
+    if (locked) {
+      lookX = input.mouse.dx;
+      lookY = input.mouse.dy;
+    } else {
+      // No pointer lock: steer with the arrow keys instead of the mouse.
+      const k = 900 * dt;
+      lookX = ((input.down('lookRight') ? 1 : 0) - (input.down('lookLeft') ? 1 : 0)) * k;
+      lookY = ((input.down('lookDown') ? 1 : 0) - (input.down('lookUp') ? 1 : 0)) * k;
+    }
+    G.local.yaw -= lookX * sens;
+    G.local.pitch -= lookY * sens * (G.profile.settings.invertY ? -1 : 1);
     G.local.pitch = clamp(G.local.pitch, -1.55, 1.55);
-    G.sway.x = clamp(G.sway.x - input.mouse.dx * 0.06, -1.4, 1.4);
-    G.sway.y = clamp(G.sway.y - input.mouse.dy * 0.06, -1.4, 1.4);
+    if (locked) {
+      G.sway.x = clamp(G.sway.x - input.mouse.dx * 0.06, -1.4, 1.4);
+      G.sway.y = clamp(G.sway.y - input.mouse.dy * 0.06, -1.4, 1.4);
+    }
   }
   G.sway.x += (0 - G.sway.x) * Math.min(1, dt * 9);
   G.sway.y += (0 - G.sway.y) * Math.min(1, dt * 9);
@@ -587,17 +602,23 @@ function updateLocal(dt, now) {
 
   // ---- desired action state ---------------------------------------
   const stunned = (me?.stun || 0) > 0;
-  const wantAds = locked && input.mouse.right && !stunned;
+  const wantAds = controlling && input.mouse.right && !stunned;
   G.ads += ((wantAds ? 1 : 0) - G.ads) * Math.min(1, dt * 12);
 
   // A dead player must not keep predicting movement, or the respawn snap
   // would yank the camera across the map.
   const alive = !me || me.alive;
-  const mx = alive ? (input.down('right') ? 1 : 0) - (input.down('left') ? 1 : 0) : 0;
-  const mz = alive ? (input.down('back') ? 1 : 0) - (input.down('forward') ? 1 : 0) : 0;
-  const sprint = alive && input.down('sprint') && mz < 0 && !stunned;
-  const crouch = alive && input.down('crouch');
-  if (!alive) { G.local.vel.x = 0; G.local.vel.z = 0; }
+  const canAct = alive && controlling && !G.chatOpen;
+  // Arrows move you while pointer-locked, and look around when they are not.
+  const ax = (input.down('right') ? 1 : 0) - (input.down('left') ? 1 : 0)
+    + (locked ? (input.down('lookRight') ? 1 : 0) - (input.down('lookLeft') ? 1 : 0) : 0);
+  const az = (input.down('back') ? 1 : 0) - (input.down('forward') ? 1 : 0)
+    + (locked ? (input.down('lookDown') ? 1 : 0) - (input.down('lookUp') ? 1 : 0) : 0);
+  const mx = canAct ? clamp(ax, -1, 1) : 0;
+  const mz = canAct ? clamp(az, -1, 1) : 0;
+  const sprint = canAct && input.down('sprint') && mz < 0 && !stunned;
+  const crouch = canAct && input.down('crouch');
+  if (!canAct) { G.local.vel.x = 0; G.local.vel.z = 0; }
 
   // ---- movement (mirrors sim.updatePlayer exactly) ----------------
   const def = currentWeaponDef();
@@ -612,7 +633,7 @@ function updateLocal(dt, now) {
   const right = { x: fwd.z, y: 0, z: -fwd.x };
   const wish = { x: fwd.x * -mz + right.x * mx, y: 0, z: fwd.z * -mz + right.z * mx };
 
-  if (alive && locked && input.hit('jump') && G.local.onGround && !stunned) {
+  if (canAct && input.hit('jump') && G.local.onGround && !stunned) {
     G.local.vel.y = JUMP_VEL;
     G.local.onGround = false;
   }
@@ -625,24 +646,24 @@ function updateLocal(dt, now) {
   if (G.local.onGround && hs > 0.6) G.bobPhase += dt * (hs * 1.5);
 
   // ---- build + send the input packet ------------------------------
-  const jumpNow = alive && locked && input.hit('jump');
+  const jumpNow = canAct && input.hit('jump');
   const packet = {
     t: 'i',
-    mx: locked ? mx : 0,
-    mz: locked ? mz : 0,
+    mx,
+    mz,
     yaw: G.local.yaw,
     pitch: G.local.pitch,
     x: G.local.pos.x, y: G.local.pos.y, z: G.local.pos.z,
     ads: wantAds,
-    sprint: locked && sprint,
+    sprint,
     crouch,
     jump: jumpNow,
     fire: alive && fireHeld(def),
-    reload: locked && input.hit('reload'),
+    reload: canAct && input.hit('reload'),
     slot: currentSlot(),
     grenade: grenadeAction(),
     streak: streakAction(),
-    action: locked && input.down('action'),
+    action: canAct && input.down('action'),
     target: predatorTarget()
   };
   // Edge-triggered actions must never be swallowed by the 30 Hz throttle.
@@ -676,7 +697,7 @@ function currentWeaponDef() {
 /** Semi-auto weapons fire on the click edge; the flag is latched so a click
  *  that lands between two 30 Hz packets is never dropped. */
 function fireHeld(def) {
-  if (!G.input.locked) { G.semiPending = false; return false; }
+  if (!G.input.controlling) { G.semiPending = false; return false; }
   if (def?.auto) return G.input.mouse.left;
   if (G.input.mouse.leftPressed) G.semiPending = true;
   if (G.semiPending) { G.semiPending = false; return true; }
@@ -1285,8 +1306,15 @@ function wireEvents() {
   // Pointer lock / pause
   G.input.onLockChange = (locked) => {
     if (G.screen !== 'match') return;
-    $('pauseHint').classList.toggle('hidden', locked);
-    if (!locked) $('resumeHint').textContent = t('clickToPlay');
+    $('pauseHint').classList.toggle('hidden', locked || G.input.fallbackLook);
+    if (!locked && !G.input.fallbackLook) $('resumeHint').textContent = t('clickToPlay');
+  };
+  // Pointer lock refused (e.g. inside a frame without the permission): keep
+  // playing with the keyboard-look fallback instead of showing a dead overlay.
+  G.input.onFallback = () => {
+    if (G.screen !== 'match') return;
+    $('pauseHint').classList.add('hidden');
+    pushToast(t('fallbackLook'));
   };
   $('gl').addEventListener('click', () => {
     audio.init();

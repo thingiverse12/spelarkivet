@@ -7,10 +7,13 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",
-    "test": "node --test test/sim.test.js test/renderer.test.js test/server.test.js test/browser.test.js",
+    "test": "node --test test/sim.test.js test/renderer.test.js test/server.test.js test/netcode.test.js test/play.test.js test/browser.test.js",
     "lint": "eslint js server test"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.1"
   }
 }

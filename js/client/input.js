@@ -1,10 +1,16 @@
 /** Keyboard + mouse state, pointer lock, and edge-triggered action helpers. */
 
 export const KEYMAP = {
-  forward: ['KeyW', 'ArrowUp'],
-  back: ['KeyS', 'ArrowDown'],
-  left: ['KeyA', 'ArrowLeft'],
-  right: ['KeyD', 'ArrowRight'],
+  forward: ['KeyW'],
+  back: ['KeyS'],
+  left: ['KeyA'],
+  right: ['KeyD'],
+  // Used as mouse-look while pointer lock is engaged, and as keyboard look
+  // when it is not (frames that refuse to grant pointer lock).
+  lookUp: ['ArrowUp'],
+  lookDown: ['ArrowDown'],
+  lookLeft: ['ArrowLeft'],
+  lookRight: ['ArrowRight'],
   sprint: ['ShiftLeft', 'ShiftRight'],
   jump: ['Space'],
   crouch: ['ControlLeft', 'KeyC'],
@@ -33,7 +39,12 @@ export class Input {
     this.wheel = 0;
     this.onLockChange = null;
     this.onChatKey = null;
+    this.onFallback = null;
     this.chatOpen = false;
+    // Set when pointer lock cannot be used (denied, blocked by the embedding
+    // frame, or simply never granted). The game must stay fully playable then.
+    this.fallbackLook = false;
+    this._lockTimer = null;
 
     window.addEventListener('keydown', (e) => this._down(e));
     window.addEventListener('keyup', (e) => this._up(e));
@@ -44,8 +55,15 @@ export class Input {
     window.addEventListener('wheel', (e) => { if (this.locked) this.wheel += Math.sign(e.deltaY); }, { passive: true });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
+      if (this.locked) {
+        clearTimeout(this._lockTimer);
+        this._lockTimer = null;
+      }
       this.onLockChange?.(this.locked);
     });
+    // Browsers fire this when lock is refused (most often: the document is in a
+    // frame that was not given the pointer-lock permission).
+    document.addEventListener('pointerlockerror', () => this.enableFallback());
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
@@ -80,8 +98,33 @@ export class Input {
   }
 
   requestLock() {
-    if (this.canvas.requestPointerLock) this.canvas.requestPointerLock();
+    if (this.fallbackLook) return;
+    try {
+      const r = this.canvas.requestPointerLock?.();
+      // Returns a promise in browsers that support the options form.
+      if (r && typeof r.catch === 'function') r.catch(() => this.enableFallback());
+    } catch {
+      this.enableFallback();
+      return;
+    }
+    // No error event and no lock within a beat means the request was ignored.
+    clearTimeout(this._lockTimer);
+    this._lockTimer = setTimeout(() => {
+      this._lockTimer = null;
+      if (!this.locked) this.enableFallback();
+    }, 600);
   }
+
+  /** Give up on pointer lock and switch to keyboard look. */
+  enableFallback() {
+    if (this.fallbackLook) return;
+    this.fallbackLook = true;
+    this.locked = false;
+    this.onFallback?.(true);
+  }
+
+  /** True while the player is in control, with or without pointer lock. */
+  get controlling() { return this.locked || this.fallbackLook; }
 
   releaseLock() {
     if (document.exitPointerLock) document.exitPointerLock();
