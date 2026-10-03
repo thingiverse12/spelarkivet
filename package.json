@@ -1,0 +1,16 @@
+{
+  "name": "duty-calls",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Call of Duty-style browser FPS: online matchmaking, maps, game modes, loadouts, XP progression.",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js",
+    "test": "node --test test/sim.test.js test/renderer.test.js test/server.test.js test/browser.test.js",
+    "lint": "eslint js server test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

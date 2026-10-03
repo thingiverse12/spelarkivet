@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Katt Runner 🐱</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a1020;
+    font-family: 'Press Start 2P', system-ui, monospace;
+    color: #fff;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* canvas sits under UI */
+  #wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a1020;
+  }
+
+  canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border-radius: 0;
+    box-shadow: none;
+    background: #000;
+    cursor: pointer;
+  }
+
+  #ui {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ══════════════ BRAWL-STYLE LOBBY ══════════════ */
+  #menuPanel {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 40%, #ffd24a 0%, #f0a020 42%, #2a8f3a 78%, #0d3a18 100%);
+  }
+
+  #menuPanel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 80%, rgba(255,255,255,0.12), transparent 40%),
+      radial-gradient(circle at 80% 20%, rgba(255,220,80,0.25), transparent 45%);
+    pointer-events: none;
+  }
+
+  /* soft vignette */
+  #menuPanel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.28) 100%);
+    pointer-events: none;
+  }
+
+  .lobby-top {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 10px 12px 0;
+    gap: 8px;
+  }
+
+  .lobby-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(180deg, #3a3a55 0%, #1e1e32 100%);
+    border: 3px solid #1a1a28;
+    border-radius: 14px;
+    padding: 6px 10px 6px 6px;
+    box-shadow: 0 4px 0 #0c0c14, 0 6px 14px rgba(0,0,0,0.35);
+    color: #fff;
+    font-size: 10px;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .lobby-pill .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #6a9ad8, #3a6098);
+    border: 2px solid #ffd24a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+  .lobby-pill .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  .lobby-pill .meta { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .lobby-pill .name-tag { font-size: 9px; color: #ffe066; }
+  .lobby-pill .trophy-row {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 9px;
+    color: #fff;
+  }
+
+  .res-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .res-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(180deg, #4a3560 0%, #2a1a38 100%);
+    border: 3px solid #1a1020;
+    border-radius: 999px;
+    padding: 5px 10px 5px 7px;
+    box-shadow: 0 3px 0 #0c0810;
+    font-size: 10px;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .res-chip .ico { font-size: 14px; line-height: 1; }
+  .res-chip.gems { background: linear-gradient(180deg, #5a40a0, #2a1860); }
+  .res-chip.coins { background: linear-gradient(180deg, #c09020, #805010); }
+  .res-chip.fish { background: linear-gradient(180deg, #3080c0, #184878); }
+
+  .lobby-mid {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(12px, 4vw, 40px);
+    padding: 48px 60px 8px;
+    min-height: 0;
+  }
+
+  .brawler-slot {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    color: #fff;
+    padding: 0;
+    transition: transform 0.12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .brawler-slot:hover { transform: translateY(-4px) scale(1.03); }
+  .brawler-slot:active { transform: translateY(0) scale(0.98); }
+
+  .brawler-slot .stage {
+    width: clamp(110px, 28vw, 170px);
+    height: clamp(140px, 36vw, 210px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    filter: drop-shadow(0 10px 0 rgba(0,0,0,0.2));
+  }
+
+  .brawler-slot .stage::before {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 18px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.35), transparent 70%);
+    border-radius: 50%;
+  }
+
+  .brawler-slot img.char-img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+  }
+
+  .brawler-slot .char-name {
+    margin-top: 4px;
+    font-size: clamp(9px, 2.2vw, 12px);
+    background: linear-gradient(180deg, #2a2a40, #141422);
+    border: 3px solid #0c0c14;
+    border-radius: 10px;
+    padding: 6px 14px;
+    box-shadow: 0 3px 0 #08080e;
+    text-shadow: 2px 2px 0 #000;
+    letter-spacing: 0.5px;
+  }
+
+  .brawler-slot.selected .char-name {
+    background: linear-gradient(180deg, #ffd24a, #e09010);
+    color: #2a1800;
+    border-color: #5a3000;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+    box-shadow: 0 0 16px rgba(255,200,40,0.55), 0 3px 0 #5a3000;
+  }
+
+  .brawler-slot.selected .stage img {
+    filter: drop-shadow(0 0 12px rgba(255,210,60,0.7)) drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+  }
+
+  .brawler-slot .sel-ring {
+    display: none;
+    position: absolute;
+    top: -6px;
+    right: -2px;
+    background: #3ecf5a;
+    color: #fff;
+    border: 3px solid #0c2810;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 #082010;
+    z-index: 3;
+  }
+  .brawler-slot.selected .sel-ring { display: flex; }
+
+  .lobby-side-left, .lobby-side-right {
+    position: absolute;
+    top: 70px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .lobby-side-left { left: 10px; }
+  .lobby-side-right { right: 10px; align-items: flex-end; }
+
+  .side-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    border: 3px solid #1a1020;
+    background: linear-gradient(180deg, #5a6a90 0%, #2a3458 100%);
+    box-shadow: 0 4px 0 #101828, 0 6px 12px rgba(0,0,0,0.3);
+    color: #fff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    font-family: inherit;
+  }
+  .side-btn.shop { background: linear-gradient(180deg, #f0c040, #c07010); }
+  .side-btn.quest { background: linear-gradient(180deg, #50b0f0, #2060a0); }
+  .side-btn.news { background: linear-gradient(180deg, #70d060, #288020); }
+  .side-btn.friends { background: linear-gradient(180deg, #f08050, #a03018); }
+
+  .side-label {
+    font-size: 7px;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+    text-align: center;
+    margin-top: -2px;
+    max-width: 54px;
+  }
+
+  .lobby-bottom {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px 14px;
+  }
+
+  .mode-card {
+    flex: 1;
+    max-width: 280px;
+    background: linear-gradient(180deg, #3a3a58 0%, #1c1c30 100%);
+    border: 3px solid #10101c;
+    border-radius: 16px;
+    padding: 10px 12px;
+    box-shadow: 0 5px 0 #08080e, 0 8px 18px rgba(0,0,0,0.35);
+    color: #fff;
+    text-align: left;
+  }
+  .mode-card .mode-tag {
+    display: inline-block;
+    font-size: 7px;
+    background: #e04060;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 0 #801028;
+  }
+  .mode-card .mode-title {
+    font-size: clamp(11px, 2.5vw, 14px);
+    color: #ffe066;
+    text-shadow: 2px 2px 0 #000;
+    margin-bottom: 4px;
+  }
+  .mode-card .mode-sub {
+    font-size: 8px;
+    color: #c0c8e0;
+    line-height: 1.5;
+  }
+
+  .play-btn {
+    font-family: inherit;
+    font-size: clamp(16px, 4vw, 22px);
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+    border: 4px solid #0c3010;
+    border-radius: 18px;
+    padding: 16px 36px;
+    min-width: min(46vw, 200px);
+    cursor: pointer;
+    background: linear-gradient(180deg, #7dff6a 0%, #2ecf3a 48%, #189828 100%);
+    box-shadow:
+      0 6px 0 #0a5010,
+      0 10px 20px rgba(0,0,0,0.35),
+      inset 0 3px 0 rgba(255,255,255,0.35);
+    transition: transform 0.08s, box-shadow 0.08s, filter 0.08s;
+  }
+  .play-btn:hover { filter: brightness(1.08); }
+  .play-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #0a5010, 0 4px 10px rgba(0,0,0,0.35), inset 0 3px 0 rgba(255,255,255,0.25);
+  }
+
+  .best-badge {
+    position: absolute;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    background: linear-gradient(180deg, #ffd24a, #e09018);
+    color: #2a1800;
+    border: 3px solid #5a3000;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 9px;
+    box-shadow: 0 4px 0 #5a3000, 0 0 16px rgba(255,200,40,0.4);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+    white-space: nowrap;
+  }
+
+  /* ══════════════ IN-GAME HUD ══════════════ */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 10px 12px;
+    display: none;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 25;
+    gap: 8px;
+  }
+
+  .hud-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(180deg, rgba(30,30,50,0.92), rgba(12,12,24,0.92));
+    border: 3px solid #101018;
+    border-radius: 12px;
+    padding: 7px 12px;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
+    font-size: clamp(9px, 2.2vw, 12px);
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+  }
+  .hud-chip .ico { font-size: 1.15em; }
+  .hud-chip.score { color: #ffe066; border-color: #5a4010; }
+  .hud-chip.best { color: #c8b0ff; font-size: 0.85em; opacity: 0.95; }
+  .hud-chip.fish { color: #7ec8ff; border-color: #184060; }
+  .hud-chip.speed { color: #ff9a60; border-color: #502010; }
+
+  .hud-col { display: flex; flex-direction: column; gap: 6px; }
+  .hud-col.right { align-items: flex-end; }
+
+  #hint {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: #fff;
+    background: rgba(0,0,0,0.45);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 8px 14px;
+    text-shadow: 1px 1px 0 #000;
+    display: none;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 25;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  /* ══════════════ GAME OVER ══════════════ */
+  #gameOverPanel {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 10, 20, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 30;
+  }
+
+  .go-card {
+    text-align: center;
+    background: linear-gradient(180deg, #3a3a58 0%, #1a1a2e 100%);
+    border: 4px solid #10101c;
+    border-radius: 22px;
+    padding: 26px 28px 22px;
+    max-width: min(92vw, 400px);
+    width: 100%;
+    box-shadow:
+      0 8px 0 #08080e,
+      0 16px 40px rgba(0,0,0,0.5),
+      inset 0 2px 0 rgba(255,255,255,0.08);
+  }
+
+  .go-card h1 {
+    font-size: clamp(16px, 4vw, 22px);
+    color: #ff6a6a;
+    text-shadow: 0 0 12px rgba(255,80,80,0.5), 3px 3px 0 #400808;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .go-card .sub {
+    font-size: 9px;
+    color: #c0c8e0;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .go-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .go-stat {
+    background: rgba(0,0,0,0.35);
+    border: 2px solid #101018;
+    border-radius: 12px;
+    padding: 10px 6px;
+  }
+  .go-stat .lbl { font-size: 7px; color: #8890a8; margin-bottom: 6px; }
+  .go-stat .val { font-size: 12px; color: #ffe066; text-shadow: 1px 1px 0 #000; }
+
+  .go-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  .btn {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 14px 22px;
+    border-radius: 14px;
+    border: 3px solid #0c3010;
+    cursor: pointer;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    background: linear-gradient(180deg, #7dff6a 0%, #2ecf3a 50%, #189828 100%);
+    box-shadow: 0 5px 0 #0a5010, 0 8px 16px rgba(0,0,0,0.35);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #0a5010, 0 3px 8px rgba(0,0,0,0.35);
+  }
+  .btn.secondary {
+    background: linear-gradient(180deg, #7a8ab0 0%, #3a4a70 100%);
+    border-color: #182038;
+    box-shadow: 0 5px 0 #101828, 0 8px 16px rgba(0,0,0,0.35);
+  }
+
+  /* keep splash styles below — they already exist after this injection point */
+
+  /* ── Brawl-style splash / loading screen ── */
+  #splash {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+    pointer-events: auto;
+    background: #1a8fd8 center/cover no-repeat;
+    background-image: url('assets/loading_bg.jpg');
+    transition: opacity 0.55s ease, visibility 0.55s ease;
+  }
+
+  #splash.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  #splash .splash-sky {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.25), transparent 60%),
+      linear-gradient(180deg, rgba(90,180,255,0.15) 0%, rgba(0,40,80,0.25) 100%);
+    pointer-events: none;
+  }
+
+  #splash .splash-logo-wrap {
+    position: absolute;
+    top: 6%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(72vw, 420px);
+    filter: drop-shadow(0 8px 0 rgba(0,0,0,0.25)) drop-shadow(0 12px 24px rgba(0,0,0,0.35));
+    animation: logoBob 2.4s ease-in-out infinite;
+    z-index: 2;
+  }
+
+  #splash .splash-logo-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  @keyframes logoBob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-8px); }
+  }
+
+  #splash .splash-bottom {
+    position: relative;
+    z-index: 3;
+    width: min(92vw, 520px);
+    padding: 0 16px 7vh;
+    text-align: center;
+  }
+
+  #splash .dl-text {
+    font-family: 'Press Start 2P', system-ui, sans-serif;
+    font-size: clamp(11px, 2.6vw, 16px);
+    color: #fff;
+    text-shadow:
+      0 0 8px rgba(0,0,0,0.5),
+      3px 3px 0 #1a2040,
+      -1px -1px 0 #1a2040,
+      1px -1px 0 #1a2040,
+      -1px 1px 0 #1a2040;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+  }
+
+  #splash .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  #splash .bar-track {
+    flex: 1;
+    max-width: 380px;
+    height: 22px;
+    background: linear-gradient(180deg, #2a1030 0%, #4a1848 40%, #1a0820 100%);
+    border: 4px solid #1a1028;
+    border-radius: 14px;
+    box-shadow:
+      0 0 0 3px rgba(255,255,255,0.35),
+      0 6px 0 rgba(0,0,0,0.35),
+      inset 0 2px 6px rgba(0,0,0,0.5);
+    overflow: hidden;
+    position: relative;
+  }
+
+  #splash .bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ffe066 0%, #ff9a2e 45%, #e05018 100%);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.2);
+    transition: width 0.12s linear;
+    position: relative;
+  }
+
+  #splash .bar-fill::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 45%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+    border-radius: 10px 10px 0 0;
+  }
+
+  #splash .bar-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
+    background-size: 200% 100%;
+    animation: barShine 1.6s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes barShine {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  #splash .bar-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #ffe066 35%, #ff9a2e 70%, #c04010 100%);
+    border: 3px solid #1a1028;
+    border-radius: 50%;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    animation: iconSpin 2.8s ease-in-out infinite;
+  }
+
+  @keyframes iconSpin {
+    0%, 100% { transform: rotate(-8deg) scale(1); }
+    50% { transform: rotate(8deg) scale(1.08); }
+  }
+
+  #splash .tip {
+    margin-top: 14px;
+    font-size: 8px;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 1px 1px 0 #000;
+    letter-spacing: 0.5px;
+  }
+
+
+
+
+  /* Hide Netlify Deploy Preview floating badge / drawer if present */
+  iframe[src*="netlify"],
+  iframe#netlify-identity-widget,
+  #netlify-identity-widget,
+  .netlify-drawer,
+  .netlify-drawer-iframe,
+  [data-netlify-deploy-id],
+  #nf-drawer-root,
+  .nf-drawer,
+  body > div[id^="netlify"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+  }
+
+</style>
+
+<script>
+// Remove Netlify deploy-preview badge / identity widget if injected
+(function () {
+  function scrub() {
+    document.querySelectorAll(
+      'iframe[src*="netlify"],iframe#netlify-identity-widget,#netlify-identity-widget,.netlify-drawer,[data-netlify-deploy-id],#nf-drawer-root,.nf-drawer'
+    ).forEach(function (el) { el.remove(); });
+  }
+  scrub();
+  document.addEventListener('DOMContentLoaded', scrub);
+  setTimeout(scrub, 500);
+  setTimeout(scrub, 1500);
+  setTimeout(scrub, 3000);
+  try {
+    new MutationObserver(scrub).observe(document.documentElement, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="900" height="500"></canvas>
+
+  <div id="hud">
+    <div class="hud-col">
+      <div class="hud-chip score"><span class="ico">⭐</span> <span id="scoreVal">0</span></div>
+      <div class="hud-chip best">🏆 <span id="bestVal">0</span></div>
+    </div>
+    <div class="hud-col right">
+      <div class="hud-chip fish"><span class="ico">🐟</span> <span id="fishVal">0</span></div>
+      <div class="hud-chip speed"><span class="ico">⚡</span> <span id="speedVal">1.0</span>x</div>
+    </div>
+  </div>
+
+  <div id="hint">MELLANSLAG / KLICKA / TRYCK för att hoppa</div>
+
+  <!-- Full-screen splash (Brawl-style loading) -->
+  <div id="splash">
+    <div class="splash-sky"></div>
+    <div class="splash-logo-wrap">
+      <img src="assets/loading_logo.png?v=7" alt="Katt Runner" id="splashLogo">
+    </div>
+    <div class="splash-bottom">
+      <div class="dl-text">Laddar innehåll: <span id="loadPct">0</span>%</div>
+      <div class="bar-row">
+        <div class="bar-track">
+          <div class="bar-fill" id="loadBar"></div>
+          <div class="bar-shine"></div>
+        </div>
+        <div class="bar-icon">🐱</div>
+      </div>
+      <div class="tip" id="loadTip">Samla fiskar. Undvik sopkärl!</div>
+    </div>
+  </div>
+
+  <div id="ui">
+    <!-- Brawl-style lobby -->
+    <div id="menuPanel" class="hidden">
+      <div class="lobby-top">
+        <div class="lobby-pill">
+          <div class="avatar" id="lobbyAvatar"><img id="lobbyAvatarImg" src="assets/chars/silver/front.png?v=6" alt=""></div>
+          <div class="meta">
+            <div class="name-tag" id="lobbyPlayerName">SPELARE</div>
+            <div class="trophy-row">🏆 <span id="menuBest">0</span></div>
+          </div>
+        </div>
+        <div class="res-row">
+          <div class="res-chip fish"><span class="ico">🐟</span> <span id="lobbyFish">0</span></div>
+          <div class="res-chip coins"><span class="ico">⭐</span> <span id="lobbyStars">0</span></div>
+          <div class="res-chip gems"><span class="ico">💎</span> ∞</div>
+        </div>
+      </div>
+
+      <div class="best-badge">BÄSTA: <span id="menuBest2">0</span></div>
+
+      <div class="lobby-side-left">
+        <div class="side-btn shop">🛒</div>
+        <div class="side-label">BUTIK</div>
+        <div class="side-btn quest">📋</div>
+        <div class="side-label">UPPDRAG</div>
+      </div>
+      <div class="lobby-side-right">
+        <div class="side-btn news">📰</div>
+        <div class="side-label">NYTT</div>
+        <div class="side-btn friends">👥</div>
+        <div class="side-label">VÄNNER</div>
+      </div>
+
+      <div class="lobby-mid" id="charSelect">
+        <button type="button" class="brawler-slot selected" data-char="silver" id="charSilver">
+          <span class="sel-ring">✓</span>
+          <div class="stage">
+            <img class="char-img" src="assets/chars/silver/front.png?v=6" alt="Silver">
+          </div>
+          <div class="char-name">SILVER</div>
+        </button>
+        <button type="button" class="brawler-slot" data-char="dark" id="charDark">
+          <span class="sel-ring">✓</span>
+          <div class="stage">
+            <img class="char-img" src="assets/chars/dark/front.png?v=6" alt="Skugga">
+          </div>
+          <div class="char-name">SKUGGA</div>
+        </button>
+      </div>
+
+      <div class="lobby-bottom">
+        <div class="mode-card">
+          <div class="mode-tag">ENDLESS</div>
+          <div class="mode-title">KATT RUN</div>
+          <div class="mode-sub">Hoppa · Samla fisk · Spring!</div>
+        </div>
+        <button class="play-btn" id="startBtn">SPELA</button>
+      </div>
+    </div>
+
+    <!-- Game over -->
+    <div id="gameOverPanel" class="hidden">
+      <div class="go-card">
+        <h1>AJ AJ AJ! 😿</h1>
+        <p class="sub">Katten snubblade…</p>
+        <div class="go-stats">
+          <div class="go-stat"><div class="lbl">POÄNG</div><div class="val" id="finalScore">0</div></div>
+          <div class="go-stat"><div class="lbl">FISKAR</div><div class="val" id="finalFish">0</div></div>
+          <div class="go-stat"><div class="lbl">BÄSTA</div><div class="val" id="finalBest">0</div></div>
+        </div>
+        <div class="go-actions">
+          <button class="btn" id="retryBtn">IGEN!</button>
+          <button class="btn secondary" id="menuBtn">LOBBY</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  const W = canvas.width;
+  const H = canvas.height;
+  const GROUND_Y = H - 78;
+
+  // ── Assets ──────────────────────────────────────────────
+  const CACHE = '?v=6';
+
+  const CHARACTERS = {
+    silver: {
+      id: 'silver',
+      name: 'Silver',
+      run: 'assets/chars/silver/run.png' + CACHE,
+      jump: 'assets/chars/silver/jump.png' + CACHE,
+      idle: 'assets/chars/silver/idle.png' + CACHE,
+      front: 'assets/chars/silver/front.png' + CACHE,
+      particleColors: ['#a0c0e8', '#c8d8f0', '#fff', '#6a8ab8', '#e8e0d0'],
+    },
+    dark: {
+      id: 'dark',
+      name: 'Skugga',
+      run: 'assets/chars/dark/run.png' + CACHE,
+      jump: 'assets/chars/dark/jump.png' + CACHE,
+      idle: 'assets/chars/dark/idle.png' + CACHE,
+      front: 'assets/chars/dark/front.png' + CACHE,
+      particleColors: ['#9090a0', '#d0d0d8', '#fff', '#505060', '#e8e8f0', '#2a2a35'],
+    },
+  };
+
+  let selectedChar = localStorage.getItem('catRunnerChar') || 'silver';
+  if (!CHARACTERS[selectedChar]) selectedChar = 'silver';
+
+  const SHARED_ASSETS = {
+    trash: 'assets/obstacle_trash_crop.png' + CACHE,
+    hydrant: 'assets/obstacle_hydrant_crop.png' + CACHE,
+    fish: 'assets/fish_coin_crop.png' + CACHE,
+    bg: 'assets/bg_city_opt.png' + CACHE,
+  };
+
+  const img = {};           // shared + active character sprites
+  const charImgs = {};      // per-character caches { silver: {run,jump,...}, dark: {...} }
+
+  // Pre-baked background strip (avoids scaling huge PNG every frame → lag at high speed)
+  let bgStrip = null;
+  let bgStripW = 0;
+  let bgStripH = 0;
+  let skyGrad = null;
+  let hudTick = 0;
+
+  function loadImage(src) {
+    return new Promise((res) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => { console.warn('fail', src); res(null); };
+      i.src = src;
+    });
+  }
+
+  function bakeBackground() {
+    const bh = GROUND_Y + 10;
+    bgStripH = bh;
+    skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+    skyGrad.addColorStop(0, '#6b4c9a');
+    skyGrad.addColorStop(0.45, '#e89060');
+    skyGrad.addColorStop(0.75, '#f0a878');
+    skyGrad.addColorStop(1, '#3a6040');
+
+    if (!img.bg) {
+      bgStrip = null;
+      bgStripW = W;
+      return;
+    }
+
+    // One tile width matching display height (integer pixels)
+    let tw = Math.max(1, Math.round((img.bg.width / img.bg.height) * bh));
+    // Cap tile width so we never overdraw giant bitmaps
+    if (tw > W) tw = W;
+    bgStripW = tw;
+
+    const off = document.createElement('canvas');
+    off.width = tw;
+    off.height = bh;
+    const octx = off.getContext('2d');
+    octx.imageSmoothingEnabled = true;
+    octx.drawImage(img.bg, 0, 0, tw, bh);
+    // soft sun baked in
+    const sunX = tw * 0.72;
+    const sunY = bh * 0.33;
+    const rg = octx.createRadialGradient(sunX, sunY, 8, sunX, sunY, 70);
+    rg.addColorStop(0, 'rgba(255,230,150,0.45)');
+    rg.addColorStop(1, 'rgba(255,180,80,0)');
+    octx.fillStyle = rg;
+    octx.beginPath();
+    octx.arc(sunX, sunY, 70, 0, Math.PI * 2);
+    octx.fill();
+    bgStrip = off;
+  }
+
+  async function loadShared() {
+    await Promise.all(Object.entries(SHARED_ASSETS).map(async ([key, src]) => {
+      img[key] = await loadImage(src);
+    }));
+    bakeBackground();
+  }
+
+  async function loadCharacter(id) {
+    const def = CHARACTERS[id];
+    if (!def) return;
+    if (!charImgs[id]) {
+      const pack = {};
+      await Promise.all(['run', 'jump', 'idle', 'front'].map(async (k) => {
+        pack[k] = await loadImage(def[k]);
+      }));
+      charImgs[id] = pack;
+    }
+    // activate
+    img.run = charImgs[id].run;
+    img.jump = charImgs[id].jump;
+    img.idle = charImgs[id].idle;
+    img.front = charImgs[id].front;
+  }
+
+  function applyCharacter(id) {
+    if (!CHARACTERS[id]) return;
+    selectedChar = id;
+    localStorage.setItem('catRunnerChar', id);
+    // Lobby brawler slots
+    document.querySelectorAll('.brawler-slot').forEach(el => {
+      el.classList.toggle('selected', el.dataset.char === id);
+    });
+    // Avatar in top pill
+    const av = document.getElementById('lobbyAvatarImg');
+    if (av && CHARACTERS[id]) {
+      av.src = CHARACTERS[id].front;
+    }
+    const pn = document.getElementById('lobbyPlayerName');
+    if (pn) pn.textContent = CHARACTERS[id].name.toUpperCase();
+    // swap sprites if already loaded
+    if (charImgs[id]) {
+      img.run = charImgs[id].run;
+      img.jump = charImgs[id].jump;
+      img.idle = charImgs[id].idle;
+      img.front = charImgs[id].front;
+    } else {
+      loadCharacter(id);
+    }
+  }
+
+  // ── State ───────────────────────────────────────────────
+  const STATE = { MENU: 0, PLAY: 1, OVER: 2 };
+  let state = STATE.MENU;
+
+  let best = Number(localStorage.getItem('catRunnerBest') || 0);
+
+  const cat = {
+    x: 100,
+    y: 0,
+    w: 96,
+    h: 64,
+    vy: 0,
+    onGround: true,
+    frame: 0,
+    frameTimer: 0,
+    invuln: 0,
+  };
+
+  let gravity = 0.58;
+  let jumpForce = -12.8;
+  let speed = 3.4;
+  let baseSpeed = 3.4;
+  const MAX_SPEED = 11.5;     // top scroll speed far into a run
+  // Animation: calm at start, quicker stride as the track speeds up
+  const RUN_FPS = 6.5;        // run-cycle frames/sec at reference speed
+  const ANIM_SPEED_REF = 3.8; // scroll speed where anim plays at RUN_FPS
+  let distance = 0;
+  let score = 0;
+  let fishCount = 0;
+  let bgOff = 0;
+  let groundOff = 0;
+  let spawnTimer = 0;
+  let nextSpawn = 90;
+  let obstacles = [];
+  let fishes = [];
+  let particles = [];
+  let shake = 0;
+  let startedOnce = false;
+
+  // ── Helpers ─────────────────────────────────────────────
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function irand(a, b) { return Math.floor(rand(a, b + 1)); }
+
+  function resetGame() {
+    cat.y = GROUND_Y - cat.h;
+    cat.vy = 0;
+    cat.onGround = true;
+    cat.frame = 0;
+    cat.frameTimer = 0;
+    cat.invuln = 0;
+    speed = baseSpeed;
+    distance = 0;
+    score = 0;
+    fishCount = 0;
+    bgOff = 0;
+    groundOff = 0;
+    spawnTimer = 0;
+    nextSpawn = 80;
+    obstacles = [];
+    fishes = [];
+    particles = [];
+    shake = 0;
+    updateHud();
+  }
+
+  function updateHud(force) {
+    // DOM updates are expensive — throttle during play
+    if (!force && state === STATE.PLAY) {
+      hudTick++;
+      if (hudTick % 6 !== 0) return;
+    }
+    document.getElementById('scoreVal').textContent = Math.floor(score);
+    document.getElementById('bestVal').textContent = best;
+    document.getElementById('fishVal').textContent = fishCount;
+    const mult = speed / baseSpeed;
+    document.getElementById('speedVal').textContent = mult.toFixed(1);
+  }
+
+  function showMenu() {
+    state = STATE.MENU;
+    document.getElementById('menuPanel').classList.remove('hidden');
+    document.getElementById('gameOverPanel').classList.add('hidden');
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('hint').style.display = 'none';
+    syncLobbyStats();
+    document.getElementById('ui').style.pointerEvents = 'auto';
+  }
+
+  function syncLobbyStats() {
+    const b1 = document.getElementById('menuBest');
+    const b2 = document.getElementById('menuBest2');
+    if (b1) b1.textContent = best;
+    if (b2) b2.textContent = best;
+    const lf = document.getElementById('lobbyFish');
+    const ls = document.getElementById('lobbyStars');
+    const totalFish = Number(localStorage.getItem('catRunnerTotalFish') || 0);
+    if (lf) lf.textContent = totalFish;
+    if (ls) ls.textContent = best;
+  }
+
+  function startGame() {
+    resetGame();
+    state = STATE.PLAY;
+    startedOnce = true;
+    document.getElementById('menuPanel').classList.add('hidden');
+    document.getElementById('gameOverPanel').classList.add('hidden');
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('hint').style.display = 'block';
+    document.getElementById('ui').style.pointerEvents = 'none';
+    setTimeout(() => {
+      if (state === STATE.PLAY) document.getElementById('hint').style.display = 'none';
+    }, 3500);
+  }
+
+  function gameOver() {
+    state = STATE.OVER;
+    shake = 14;
+    if (score > best) {
+      best = Math.floor(score);
+      localStorage.setItem('catRunnerBest', String(best));
+    }
+    // burst particles (keep few for performance)
+    for (let i = 0; i < 12; i++) {
+      particles.push({
+        x: cat.x + cat.w / 2,
+        y: cat.y + cat.h / 2,
+        vx: rand(-5, 5),
+        vy: rand(-8, -1),
+        life: rand(24, 40),
+        max: 40,
+        color: (CHARACTERS[selectedChar].particleColors)[irand(0, CHARACTERS[selectedChar].particleColors.length - 1)],
+        size: rand(3, 6),
+      });
+    }
+    document.getElementById('finalScore').textContent = Math.floor(score);
+    document.getElementById('finalFish').textContent = fishCount;
+    document.getElementById('finalBest').textContent = best;
+    // lifetime fish bank for lobby chip
+    const prev = Number(localStorage.getItem('catRunnerTotalFish') || 0);
+    localStorage.setItem('catRunnerTotalFish', String(prev + fishCount));
+    document.getElementById('gameOverPanel').classList.remove('hidden');
+    document.getElementById('hint').style.display = 'none';
+    document.getElementById('ui').style.pointerEvents = 'auto';
+    updateHud(true);
+  }
+
+  function jump() {
+    if (state === STATE.MENU) { startGame(); return; }
+    if (state === STATE.OVER) return;
+    if (cat.onGround) {
+      cat.vy = jumpForce;
+      cat.onGround = false;
+      cat.frame = 2; // stretch pose as they leave the ground
+      cat.frameTimer = 0;
+      // dust
+      for (let i = 0; i < 5; i++) {
+        particles.push({
+          x: cat.x + cat.w * 0.35 + rand(0, 12),
+          y: GROUND_Y - 2,
+          vx: rand(-1.8, 0.4),
+          vy: rand(-2.2, -0.4),
+          life: rand(10, 18),
+          max: 18,
+          color: 'rgba(180,140,80,0.75)',
+          size: rand(2, 4),
+        });
+      }
+    }
+  }
+
+  // ── Spawn ───────────────────────────────────────────────
+  function spawnObstacle() {
+    const type = Math.random() < 0.55 ? 'trash' : 'hydrant';
+    const h = type === 'trash' ? 58 : 52;
+    const w = type === 'trash' ? 44 : 34;
+    obstacles.push({
+      type,
+      x: W + 20,
+      y: GROUND_Y - h,
+      w, h,
+      passed: false,
+    });
+
+    // Sometimes a fish above or after
+    if (Math.random() < 0.7) {
+      fishes.push({
+        x: W + 20 + rand(40, 160),
+        y: GROUND_Y - rand(90, 160),
+        w: 34,
+        h: 28,
+        bob: rand(0, Math.PI * 2),
+        taken: false,
+      });
+    }
+    // Extra floating fish occasionally
+    if (Math.random() < 0.35) {
+      fishes.push({
+        x: W + rand(200, 340),
+        y: GROUND_Y - rand(70, 140),
+        w: 34,
+        h: 28,
+        bob: rand(0, Math.PI * 2),
+        taken: false,
+      });
+    }
+  }
+
+  // ── Collision ───────────────────────────────────────────
+  function hitbox(o, shrink = 0.18) {
+    const sx = o.w * shrink;
+    const sy = o.h * shrink;
+    return {
+      x: o.x + sx,
+      y: o.y + sy,
+      w: o.w - sx * 2,
+      h: o.h - sy * 1.4, // less from bottom
+    };
+  }
+
+  function overlaps(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  // ── Update ──────────────────────────────────────────────
+  function update() {
+    // particles always
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.18;
+      p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    if (shake > 0) shake *= 0.88;
+    if (shake < 0.3) shake = 0;
+
+    if (state !== STATE.PLAY) return;
+
+    // Progressive speed: calm start → steadily faster the further you run.
+    // Ease-out curve so early gains feel clear, late game approaches MAX_SPEED.
+    const progress = Math.min(1, distance / 9000);          // ~full ramp after a long run
+    const eased = 1 - Math.pow(1 - progress, 1.55);        // faster early, smooth late
+    speed = baseSpeed + (MAX_SPEED - baseSpeed) * eased;
+    distance += speed * 0.30;
+    score = distance + fishCount * 25;
+    updateHud();
+
+    // cat physics — slightly softer apex, snappier land
+    const inAir = !cat.onGround;
+    cat.vy += inAir && cat.vy > 0 ? gravity * 1.15 : gravity;
+    cat.y += cat.vy;
+    if (cat.y >= GROUND_Y - cat.h) {
+      cat.y = GROUND_Y - cat.h;
+      cat.vy = 0;
+      if (!cat.onGround) {
+        // landing dust
+        for (let i = 0; i < 5; i++) {
+          particles.push({
+            x: cat.x + rand(10, cat.w - 10),
+            y: GROUND_Y - 2,
+            vx: rand(-2, 2),
+            vy: rand(-1.5, 0),
+            life: rand(10, 18),
+            max: 18,
+            color: 'rgba(160,130,70,0.7)',
+            size: rand(2, 4),
+          });
+        }
+        // land on a grounded pose
+        cat.frame = 0;
+        cat.frameTimer = 0;
+      }
+      cat.onGround = true;
+    } else {
+      cat.onGround = false;
+    }
+
+    // run animation — stride speeds up with the track (still natural, not frantic)
+    if (cat.onGround) {
+      const speedRatio = speed / ANIM_SPEED_REF;
+      const animRate = RUN_FPS * Math.min(2.1, Math.max(0.85, 0.55 + speedRatio * 0.55));
+      cat.frameTimer += animRate / 60;
+      if (cat.frameTimer >= 1) {
+        cat.frameTimer -= 1;
+        cat.frame = (cat.frame + 1) % 4;
+      }
+    }
+
+    // parallax — smooth background scroll
+    bgOff = (bgOff + speed * 0.16) % (W);
+    groundOff = (groundOff + speed) % 48;
+
+    // spawn — gaps shrink as speed rises so pressure stays fair
+    spawnTimer++;
+    if (spawnTimer >= nextSpawn) {
+      spawnTimer = 0;
+      const last = obstacles[obstacles.length - 1];
+      // keep reaction time roughly stable: gap grows with speed, but less so late-game
+      const minGap = 200 + speed * 22;
+      if (!last || last.x < W - minGap) {
+        spawnObstacle();
+      }
+      // spawn cadence tightens at high speed
+      const speedT = (speed - baseSpeed) / (MAX_SPEED - baseSpeed);
+      nextSpawn = irand(78, 125) - Math.floor(speedT * 40) - Math.min(12, Math.floor(speed * 1.5));
+      if (nextSpawn < 38) nextSpawn = 38;
+    }
+
+    // move obstacles
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i];
+      o.x -= speed;
+      if (!o.passed && o.x + o.w < cat.x) {
+        o.passed = true;
+        score += 10;
+      }
+      if (o.x + o.w < -20) obstacles.splice(i, 1);
+      else {
+        const cb = hitbox({ x: cat.x, y: cat.y, w: cat.w, h: cat.h }, 0.22);
+        const ob = hitbox(o, 0.2);
+        if (overlaps(cb, ob)) {
+          gameOver();
+          return;
+        }
+      }
+    }
+
+    // fishes
+    for (let i = fishes.length - 1; i >= 0; i--) {
+      const f = fishes[i];
+      f.x -= speed;
+      f.bob += 0.1;
+      if (f.x + f.w < -20) { fishes.splice(i, 1); continue; }
+      const fy = f.y + Math.sin(f.bob) * 6;
+      const fb = { x: f.x, y: fy, w: f.w, h: f.h };
+      const cb = { x: cat.x + 8, y: cat.y + 8, w: cat.w - 16, h: cat.h - 12 };
+      if (overlaps(cb, fb)) {
+        fishCount++;
+        score += 25;
+        // sparkle (few particles)
+        for (let k = 0; k < 5; k++) {
+          particles.push({
+            x: f.x + f.w / 2,
+            y: fy + f.h / 2,
+            vx: rand(-3, 3),
+            vy: rand(-4, 1),
+            life: rand(12, 22),
+            max: 22,
+            color: ['#7ec8ff', '#ffe066', '#fff', '#a0e0ff'][irand(0, 3)],
+            size: rand(2, 4),
+          });
+        }
+        fishes.splice(i, 1);
+        updateHud(true);
+      }
+    }
+  }
+
+  // ── Draw ────────────────────────────────────────────────
+  function drawBackground() {
+    // cheap sky fill (prebuilt gradient)
+    ctx.fillStyle = skyGrad || '#e89060';
+    ctx.fillRect(0, 0, W, GROUND_Y + 10);
+
+    if (bgStrip && bgStripW > 0) {
+      // Scroll pre-baked tile — 1:1 blit, no live scaling of huge PNG
+      const bw = bgStripW;
+      let x = -((bgOff % bw) + bw) % bw;
+      // at most 2–3 draws cover the screen
+      while (x < W) {
+        ctx.drawImage(bgStrip, x, 0);
+        x += bw;
+      }
+    } else if (img.bg) {
+      // fallback
+      const bh = GROUND_Y + 10;
+      const bw = Math.round((img.bg.width / img.bg.height) * bh);
+      let x = -((bgOff % bw) + bw) % bw;
+      while (x < W) {
+        ctx.drawImage(img.bg, x, 0, bw, bh);
+        x += bw;
+      }
+    }
+  }
+
+  function drawGround() {
+    // dirt
+    ctx.fillStyle = '#3d2a18';
+    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+    // grass strip
+    ctx.fillStyle = '#4a8c3a';
+    ctx.fillRect(0, GROUND_Y, W, 14);
+
+    // simple scrolling grass marks (rects, not paths)
+    ctx.fillStyle = '#5cb04a';
+    const go = ((groundOff % 20) + 20) % 20;
+    for (let x = -go; x < W + 20; x += 20) {
+      ctx.fillRect(x, GROUND_Y - 4, 3, 6);
+      ctx.fillRect(x + 8, GROUND_Y - 2, 2, 4);
+    }
+
+    // dirt band
+    ctx.fillStyle = '#2e1e10';
+    ctx.fillRect(0, GROUND_Y + 28, W, 3);
+    ctx.fillRect(0, GROUND_Y + 48, W, 2);
+
+    // top edge highlight
+    ctx.fillStyle = '#7dcc5a';
+    ctx.fillRect(0, GROUND_Y, W, 3);
+  }
+
+  function drawCat() {
+    // subtle body bob tied to run cycle (contact frames lower, flight frames higher)
+    // frames: 0 contact, 1 push, 2 stretch, 3 gather
+    const bobTable = [1.5, -1.0, -2.5, 0.5];
+    const bob = cat.onGround ? bobTable[cat.frame % 4] : 0;
+
+    // light squash/stretch
+    let scaleX = 1, scaleY = 1;
+    if (cat.onGround) {
+      if (cat.frame === 0) { scaleX = 1.04; scaleY = 0.96; }      // land/contact
+      else if (cat.frame === 2) { scaleX = 0.97; scaleY = 1.04; } // stretch stride
+    } else {
+      // airborne: stretch on rise, slight squash near peak/fall
+      if (cat.vy < -2) { scaleX = 0.96; scaleY = 1.06; }
+      else if (cat.vy > 2) { scaleX = 1.03; scaleY = 0.97; }
+      else { scaleX = 1.0; scaleY = 1.02; }
+    }
+
+    // shadow first
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    const airLift = Math.max(0, (GROUND_Y - cat.h) - cat.y);
+    const sw = cat.onGround ? cat.w * 0.52 : cat.w * Math.max(0.28, 0.5 - airLift * 0.004);
+    ctx.beginPath();
+    ctx.ellipse(cat.x + cat.w / 2, GROUND_Y - 2, sw / 2, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    let drawY = cat.y + bob;
+
+    if (state === STATE.OVER) {
+      ctx.translate(cat.x + cat.w / 2, cat.y + cat.h / 2);
+      ctx.rotate(-0.55);
+      ctx.translate(-(cat.x + cat.w / 2), -(cat.y + cat.h / 2));
+      ctx.globalAlpha = 0.92;
+    }
+
+    // pivot from bottom-center so squash stays grounded
+    const pivotX = cat.x + cat.w / 2;
+    const pivotY = drawY + cat.h;
+    ctx.translate(pivotX, pivotY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-pivotX, -pivotY);
+
+    const drawSprite = (im, dx, dy, dw, dh) => {
+      if (!im) return false;
+      const aspect = im.width / im.height;
+      let w = dw, h = dh;
+      if (w / h > aspect) w = h * aspect;
+      else h = w / aspect;
+      const ox = dx + (dw - w) / 2;
+      const oy = dy + (dh - h);
+      ctx.drawImage(im, ox, oy, w, h);
+      return true;
+    };
+
+    if (state === STATE.OVER && img.idle) {
+      drawSprite(img.idle, cat.x, drawY, cat.w, cat.h);
+    } else if (!cat.onGround && img.jump) {
+      drawSprite(img.jump, cat.x, drawY, cat.w, cat.h);
+    } else if (img.run) {
+      const fw = img.run.width / 4;
+      const fh = img.run.height;
+      const fi = cat.frame % 4;
+      const aspect = fw / fh;
+      let w = cat.w, h = cat.h;
+      if (w / h > aspect) w = h * aspect;
+      else h = w / aspect;
+      const ox = cat.x + (cat.w - w) / 2;
+      const oy = drawY + (cat.h - h);
+      ctx.drawImage(img.run, fi * fw, 0, fw, fh, ox, oy, w, h);
+    } else if (img.idle) {
+      drawSprite(img.idle, cat.x, drawY, cat.w, cat.h);
+    } else {
+      ctx.fillStyle = '#a0a8b0';
+      ctx.fillRect(cat.x, drawY, cat.w, cat.h);
+    }
+
+    ctx.restore();
+  }
+
+  function drawObstacles() {
+    for (const o of obstacles) {
+      const key = o.type === 'trash' ? 'trash' : 'hydrant';
+      // simple shadow rect
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(o.x + 4, GROUND_Y - 3, o.w - 8, 3);
+      if (img[key]) {
+        ctx.drawImage(img[key], o.x, o.y, o.w, o.h);
+      } else {
+        ctx.fillStyle = o.type === 'trash' ? '#3a8a4a' : '#d03030';
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+      }
+    }
+  }
+
+  function drawFishes() {
+    for (const f of fishes) {
+      const fy = f.y + Math.sin(f.bob) * 6;
+      if (img.fish) {
+        ctx.drawImage(img.fish, f.x, fy, f.w, f.h);
+      } else {
+        ctx.fillStyle = '#7ec8ff';
+        ctx.fillRect(f.x, fy, f.w, f.h);
+      }
+    }
+  }
+
+  function drawParticles() {
+    // hard cap so particle spam never tanks FPS at high speed
+    if (particles.length > 40) particles.length = 40;
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      const a = Math.max(0, p.life / p.max);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.color;
+      const s = p.size * a;
+      ctx.fillRect(p.x - s * 0.5, p.y - s * 0.5, s, s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawMenuPreview() {
+    // calm trot preview (~7 fps)
+    const t = performance.now() / 1000;
+    const fi = Math.floor(t * RUN_FPS) % 4;
+    const bobTable = [1.5, -1.0, -2.5, 0.5];
+    const bob = bobTable[fi];
+    const cx = W / 2 - 60;
+
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(cx + 60, GROUND_Y - 2, 42, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (img.run) {
+      const fw = img.run.width / 4;
+      const fh = img.run.height;
+      const dw = 120, dh = 84;
+      const aspect = fw / fh;
+      let w = dw, h = dh;
+      if (w / h > aspect) w = h * aspect;
+      else h = w / aspect;
+      ctx.drawImage(img.run, fi * fw, 0, fw, fh, cx + (dw - w) / 2, GROUND_Y - h - 8 + bob, w, h);
+    } else if (img.idle) {
+      ctx.drawImage(img.idle, cx, GROUND_Y - 90 + bob, 120, 80);
+    }
+  }
+
+  function draw() {
+    ctx.imageSmoothingEnabled = false;
+    ctx.save();
+    if (shake > 0) {
+      ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    }
+
+    drawBackground();
+    drawGround();
+
+    if (state === STATE.MENU) {
+      drawMenuPreview();
+      // floating fishes decoration
+      if (img.fish) {
+        const t = performance.now() / 1000;
+        for (let i = 0; i < 3; i++) {
+          const fx = 80 + i * 280 + Math.sin(t + i) * 20;
+          const fy = 80 + Math.sin(t * 1.5 + i * 2) * 18;
+          ctx.globalAlpha = 0.7;
+          ctx.drawImage(img.fish, fx, fy, 40, 32);
+        }
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      drawFishes();
+      drawObstacles();
+      drawCat();
+      drawParticles();
+    }
+
+    ctx.restore();
+  }
+
+  // ── Loop ────────────────────────────────────────────────
+  let lastTs = 0;
+  function loop(ts) {
+    // fixed-ish step: never run more than ~1 update per frame
+    // (avoids spiral-of-death if a frame stutters)
+    if (!lastTs) lastTs = ts;
+    const dt = Math.min(32, ts - lastTs);
+    lastTs = ts;
+    // always one update/draw; physics already tuned for ~60fps
+    if (dt > 0) {
+      update();
+      draw();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ── Input ───────────────────────────────────────────────
+  function onJumpInput(e) {
+    if (e && e.type === 'keydown') {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        jump();
+      }
+      if (e.code === 'Enter' && state === STATE.OVER) {
+        startGame();
+      }
+      if (e.code === 'KeyR' && state === STATE.OVER) {
+        startGame();
+      }
+    } else {
+      // click/touch — only jump if not clicking a button
+      if (e && e.target && e.target.closest && e.target.closest('button')) return;
+      jump();
+    }
+  }
+
+  window.addEventListener('keydown', onJumpInput);
+  canvas.addEventListener('pointerdown', onJumpInput);
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+  document.getElementById('menuBtn').addEventListener('click', showMenu);
+
+  // Character select
+  document.querySelectorAll('.brawler-slot').forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      applyCharacter(card.dataset.char);
+    });
+  });
+
+  // Arrow keys to switch character on menu
+  window.addEventListener('keydown', e => {
+    if (state !== STATE.MENU) return;
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      e.preventDefault();
+      const ids = Object.keys(CHARACTERS);
+      let idx = ids.indexOf(selectedChar);
+      idx = e.code === 'ArrowLeft' ? (idx - 1 + ids.length) % ids.length : (idx + 1) % ids.length;
+      applyCharacter(ids[idx]);
+    }
+  });
+
+  // Prevent space scrolling
+  window.addEventListener('keydown', e => {
+    if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+  }, { passive: false });
+
+  // ── Boot / splash loading ───────────────────────────────
+  document.getElementById('bestVal').textContent = best;
+  document.querySelectorAll('.brawler-slot').forEach(el => {
+    el.classList.toggle('selected', el.dataset.char === selectedChar);
+  });
+  // lobby stats filled when syncLobbyStats exists (hoisted via function decl)
+  try { syncLobbyStats(); } catch (e) {}
+
+  const TIPS = [
+    'Samla fiskar. Undvik sopkärl!',
+    'Hoppa med mellanslag eller tryck!',
+    'Välj Silver eller Skugga i menyn!',
+    'Ju längre du springer, desto fortare går det!',
+    'Fiskar ger extra poäng 🐟',
+  ];
+  let tipIdx = 0;
+  const tipEl = document.getElementById('loadTip');
+  const tipTimer = setInterval(() => {
+    tipIdx = (tipIdx + 1) % TIPS.length;
+    if (tipEl) tipEl.textContent = TIPS[tipIdx];
+  }, 2200);
+
+  const loadBar = document.getElementById('loadBar');
+  const loadPct = document.getElementById('loadPct');
+  let displayPct = 0;
+  let targetPct = 0;
+  let loadAnimId = 0;
+
+  function setLoadProgress(p) {
+    targetPct = Math.max(targetPct, Math.min(100, p));
+  }
+
+  function tickLoadBar() {
+    // smooth chase toward target
+    if (displayPct < targetPct) {
+      displayPct += Math.max(0.6, (targetPct - displayPct) * 0.12);
+      if (displayPct > targetPct) displayPct = targetPct;
+    }
+    const v = Math.floor(displayPct);
+    if (loadBar) loadBar.style.width = v + '%';
+    if (loadPct) loadPct.textContent = String(v);
+    if (displayPct < 100 || targetPct < 100) {
+      loadAnimId = requestAnimationFrame(tickLoadBar);
+    }
+  }
+  loadAnimId = requestAnimationFrame(tickLoadBar);
+
+  // Fake early progress so bar feels alive while network loads
+  setLoadProgress(8);
+  setTimeout(() => setLoadProgress(18), 200);
+  setTimeout(() => setLoadProgress(28), 450);
+
+  function loadImageProgress(src, onOne) {
+    return new Promise((res) => {
+      const i = new Image();
+      i.onload = () => { onOne && onOne(); res(i); };
+      i.onerror = () => { console.warn('fail', src); onOne && onOne(); res(null); };
+      i.src = src;
+    });
+  }
+
+  async function bootLoad() {
+    // Collect every URL we need
+    const urls = [
+      'assets/loading_bg.jpg',
+      'assets/loading_logo.png?v=7',
+      SHARED_ASSETS.trash,
+      SHARED_ASSETS.hydrant,
+      SHARED_ASSETS.fish,
+      SHARED_ASSETS.bg,
+      CHARACTERS.silver.run,
+      CHARACTERS.silver.jump,
+      CHARACTERS.silver.idle,
+      CHARACTERS.silver.front,
+      CHARACTERS.dark.run,
+      CHARACTERS.dark.jump,
+      CHARACTERS.dark.idle,
+      CHARACTERS.dark.front,
+    ];
+    let done = 0;
+    const total = urls.length;
+    const bump = () => {
+      done++;
+      // map 0..total → 28..96 so bar finishes after setup
+      setLoadProgress(28 + Math.floor((done / total) * 68));
+    };
+
+    // Load splash art first for instant pretty screen
+    await loadImageProgress(urls[0], bump);
+    await loadImageProgress(urls[1], bump);
+
+    // Parallel rest
+    await Promise.all(urls.slice(2).map(u => loadImageProgress(u, bump)));
+
+    // Wire into game asset system
+    setLoadProgress(96);
+    await loadShared();
+    await Promise.all([loadCharacter('silver'), loadCharacter('dark')]);
+    applyCharacter(selectedChar);
+    resetGame();
+
+    setLoadProgress(100);
+    // let bar reach 100 visually
+    await new Promise(r => {
+      const wait = () => {
+        if (displayPct >= 99.5) r();
+        else requestAnimationFrame(wait);
+      };
+      wait();
+    });
+    await new Promise(r => setTimeout(r, 280));
+
+    clearInterval(tipTimer);
+    cancelAnimationFrame(loadAnimId);
+
+    const splash = document.getElementById('splash');
+    if (splash) splash.classList.add('fade-out');
+    document.getElementById('menuPanel').classList.remove('hidden');
+    document.getElementById('ui').style.pointerEvents = 'auto';
+
+    requestAnimationFrame(loop);
+  }
+
+  // While splash is up, don't let UI steal clicks under it
+  document.getElementById('ui').style.pointerEvents = 'none';
+  bootLoad().catch(err => {
+    console.error(err);
+    // fail-open: still start game
+    const splash = document.getElementById('splash');
+    if (splash) splash.classList.add('fade-out');
+    document.getElementById('menuPanel').classList.remove('hidden');
+    document.getElementById('ui').style.pointerEvents = 'auto';
+    loadShared().then(() => Promise.all([loadCharacter('silver'), loadCharacter('dark')])).then(() => {
+      applyCharacter(selectedChar);
+      resetGame();
+      requestAnimationFrame(loop);
+    });
+  });
+})();
+</script>
+</body>
+</html>

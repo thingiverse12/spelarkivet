@@ -29,3 +29,6 @@ build/
 # Local drop package
 katt-runner-netlify-drop.zip
 dist-drop/
+
+# Runtime data written by the multiplayer server
+.data/

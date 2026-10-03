@@ -1,10 +1,22 @@
+# Static hosting headers (Netlify / Cloudflare Pages).
+# Note: real online multiplayer needs the Node server in /server — on a purely
+# static host the game automatically falls back to local bot matches.
+
 /*
-  X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 
-/assets/*
+/vendor/*
   Cache-Control: public, max-age=31536000, immutable
+
+/css/*
+  Cache-Control: public, max-age=3600
+
+/js/*
+  Cache-Control: public, max-age=300
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
+
+/katt-runner/assets/*
+  Cache-Control: public, max-age=31536000, immutable
