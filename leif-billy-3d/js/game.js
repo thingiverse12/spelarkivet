@@ -448,10 +448,11 @@ addEventListener('pointermove', e => {
 });
 addEventListener('pointerup', e => {
   if (e.pointerId === stick.id) {
-    stick.active = false; stick.dx = stick.dy = 0; stick.camX = undefined;
+    stick.active = false; stick.dx = stick.dy = 0;
     $('stickBase').style.display = 'none';
     $('stickNub').style.display = 'none';
   }
+  if (e.pointerType === 'touch') stick.camX = undefined;
 });
 $('btnJump').addEventListener('pointerdown', e => { e.preventDefault(); jump(); });
 $('btnSnus').addEventListener('pointerdown', e => { e.preventDefault(); useSnus(); });
