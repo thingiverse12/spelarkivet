@@ -1,3 +1,55 @@
+# 🕹 Spelarkivet
+
+Samling av spel byggda i repo't. Just nu:
+
+| Spel | Typ | Mapp |
+|------|-----|------|
+| **Leif & Billy 3D – Skuldbrevsjakten i Sörbäcken** | 3D third person collect-&-evade (Three.js) | [`leif-billy-3d/`](leif-billy-3d/) |
+| **Katt Runner** | 2D endless runner | rot (`index.html`) |
+
+---
+
+# 🌲 Leif & Billy 3D – Skuldbrevsjakten i Sörbäcken
+
+Ett 3D-spel inspirerat av SVT-serien *Leif & Billy*. Spela som **Leif** eller **Billy**
+och samla alla gulkronor i Sörbäcken innan tiden rinner ut – samtidigt som du undviker
+**Kronofogden** (och älgen!). Tre nivåer: Snustorkan, Tjuvjakten och Hembräntsraiden.
+
+```bash
+cd leif-billy-3d
+python3 -m http.server 8080
+```
+
+Öppna `http://localhost:8080`
+
+## Kontroller
+
+- **W A S D / pilar** – spring · **MUS/DRAG** – vrid kamera
+- **MELLANSLAG** – hoppa · **SKIFT** – spurta · **E** – snusa (speedboost)
+- **P / ESC** – paus · **R** – starta om · **M** – ljud på/av
+- Mobil: virtuell joystick + knappar
+
+## Detaljer
+
+- Helt originaalskapade lowpoly-modeller (bröderna, fogden, älgen, husvagnen,
+  raggar-Volvon, utedasset, faluröda torp) byggda i kod med Three.js (vendoad i `vendor/`).
+- Proceduralt ljud och musik via WebAudio – inga samples.
+- Menypanelen "Om serien" summerar fakta om SVT-serien (premiär 2017, 7 säsonger /
+  50 avsnitt, Kristallen 2020 & 2023 m.m.).
+- **Ett officielt fritt fantribut**: ingen kod, bild, modell eller ljud från SVT/Jarowskij
+  används. Serien och rollfigurerna © SVT/Jarowskij; spelets utförande är eget.
+
+| Fil | Roll |
+|-----|------|
+| `leif-billy-3d/index.html` | UI, HUD, meny |
+| `leif-billy-3d/js/game.js` | Spelloop, AI, nivåer |
+| `leif-billy-3d/js/chars.js` | Karaktärsbyggen + animation |
+| `leif-billy-3d/js/world.js` | Världsbyggen (by, skog, fordon) |
+| `leif-billy-3d/js/audio.js` | WebAudio-SFX och musik |
+| `leif-billy-3d/vendor/three.module.min.js` | Three.js r160 (MIT) |
+
+---
+
 # 🐱 Katt Runner
 
 Ett 2D endless runner där du spelar som **Silver** eller **Skugga**.
