@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Leif &amp; Billy 3D – Skuldbrevsjakten i Sörbäcken</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #10141c;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #fff;
+    touch-action: none;
+    user-select: none; -webkit-user-select: none;
+  }
+  #wrap { position: relative; width: 100%; height: 100%; }
+  canvas#game { display: block; width: 100%; height: 100%; }
+
+  .hidden { display: none !important; }
+
+  /* ══════════ HUD ══════════ */
+  #hud {
+    position: absolute; inset: 0; pointer-events: none; z-index: 10;
+    font-weight: 700;
+  }
+  .hud-box {
+    position: absolute;
+    background: linear-gradient(180deg, rgba(28,34,46,.88), rgba(14,18,26,.88));
+    border: 2px solid rgba(255,255,255,.18);
+    border-radius: 12px;
+    padding: 8px 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.45);
+    text-shadow: 0 1px 2px #000;
+    font-size: 15px;
+    line-height: 1.35;
+  }
+  #hudLeft  { top: 12px; left: 12px; }
+  #hudMid   { top: 12px; left: 50%; transform: translateX(-50%); text-align: center; font-size: 22px; }
+  #hudMid small { display:block; font-size: 11px; opacity: .75; letter-spacing: 2px; }
+  #hudRight { top: 12px; right: 12px; text-align: right; }
+  #hudRight .coins { color: #ffd24a; font-size: 18px; }
+  #hudRight .score { color: #9fe8a0; }
+  .lives { letter-spacing: 2px; font-size: 17px; }
+  .lives .lost { opacity: .22; filter: grayscale(1); }
+  #snusHud { bottom: 14px; left: 12px; display: flex; align-items: center; gap: 8px; }
+  #snusHud .can { font-size: 20px; }
+  #snusHud .hint { font-size: 11px; opacity: .7; font-weight: 600; }
+  #boostBar {
+    position: absolute; bottom: 64px; left: 12px; width: 150px; height: 8px;
+    background: rgba(0,0,0,.5); border-radius: 6px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.25);
+  }
+  #boostFill { height: 100%; width: 100%; background: linear-gradient(90deg,#7ee787,#ffd24a); transition: width .12s linear; }
+
+  /* toast / dialog */
+  #toast {
+    position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%);
+    max-width: min(680px, 92vw);
+    background: linear-gradient(180deg, rgba(20,24,34,.94), rgba(8,10,16,.94));
+    border: 2px solid #ffd24a; border-radius: 14px;
+    padding: 12px 20px;
+    font-size: 17px; text-align: center;
+    box-shadow: 0 6px 24px rgba(0,0,0,.6);
+    opacity: 0; transition: opacity .25s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+  #toast .who { color: #ffd24a; font-size: 12px; letter-spacing: 2px; display: block; margin-bottom: 4px; }
+
+  #banner {
+    position: absolute; top: 22%; left: 50%; transform: translate(-50%,-50%) scale(.8);
+    font-size: clamp(26px, 6vw, 58px); font-weight: 900; letter-spacing: 2px;
+    color: #ffd24a; text-shadow: 0 3px 0 #7a4a00, 0 8px 30px rgba(0,0,0,.7);
+    opacity: 0; transition: all .35s cubic-bezier(.2,1.6,.4,1);
+    pointer-events: none; text-align: center; white-space: nowrap;
+  }
+  #banner.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+  #damageFlash {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(200,30,30,.55) 100%);
+    opacity: 0; transition: opacity .5s;
+  }
+  #damageFlash.on { opacity: 1; transition: opacity .05s; }
+
+  /* ══════════ Overlays ══════════ */
+  .overlay {
+    position: absolute; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(6,8,14,.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .panel {
+    width: min(720px, 94vw); max-height: 92vh; overflow-y: auto;
+    background: linear-gradient(180deg, #232c3d, #131926);
+    border: 3px solid #3d4a63; border-radius: 20px;
+    padding: 26px 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.7);
+    text-align: center;
+  }
+  .panel h1 {
+    font-size: clamp(26px, 5vw, 44px); font-weight: 900; letter-spacing: 1px;
+    color: #ffd24a; text-shadow: 0 3px 0 #6b4200;
+    margin-bottom: 4px;
+  }
+  .panel h2 { font-size: clamp(20px, 4vw, 30px); color: #ffd24a; margin-bottom: 10px; }
+  .panel .sub { color: #9fb2d0; font-size: 14px; margin-bottom: 18px; }
+  .panel p { font-size: 15px; line-height: 1.55; color: #d7e0ef; margin-bottom: 12px; }
+
+  .btn {
+    display: inline-block; cursor: pointer; pointer-events: auto;
+    background: linear-gradient(180deg, #ffd24a, #e8960c);
+    color: #3a2500; font-weight: 900; font-size: 18px;
+    border: 3px solid #7a4a00; border-radius: 14px;
+    padding: 12px 30px; margin: 6px 8px;
+    box-shadow: 0 5px 0 #7a4a00, 0 10px 22px rgba(0,0,0,.5);
+    transition: transform .08s, box-shadow .08s;
+    font-family: inherit;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #7a4a00; }
+  .btn.ghost {
+    background: linear-gradient(180deg, #3a4660, #2a3345);
+    color: #cfe0ff; border-color: #141a26; box-shadow: 0 5px 0 #141a26;
+  }
+  .btn.small { font-size: 14px; padding: 8px 18px; }
+
+  /* char select cards */
+  #charCards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 10px 0 6px; }
+  .charCard {
+    pointer-events: auto; cursor: pointer;
+    width: 210px; padding: 14px 12px;
+    background: linear-gradient(180deg, #2c374c, #1b2231);
+    border: 3px solid #3d4a63; border-radius: 16px;
+    transition: all .15s;
+  }
+  .charCard:hover { transform: translateY(-3px); }
+  .charCard.sel { border-color: #ffd24a; box-shadow: 0 0 0 3px rgba(255,210,74,.35), 0 10px 30px rgba(0,0,0,.5); }
+  .charCard .pname { font-size: 22px; font-weight: 900; color: #fff; }
+  .charCard .ptag { font-size: 12px; color: #9fb2d0; margin: 4px 0 10px; min-height: 32px; }
+  .charCard .stat { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #c6d4ea; margin: 4px 0; }
+  .charCard .stat .bar { flex: 1; height: 7px; background: #0c1018; border-radius: 4px; overflow: hidden; }
+  .charCard .stat .bar i { display: block; height: 100%; background: linear-gradient(90deg,#7ee787,#ffd24a); }
+  .swatch { width: 26px; height: 26px; border-radius: 8px; border: 2px solid rgba(255,255,255,.3); display: inline-block; vertical-align: middle; margin-right: 4px; }
+
+  .keys {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px; margin: 14px 0; font-size: 13px; color: #c6d4ea; text-align: left;
+  }
+  .keys div { background: rgba(0,0,0,.3); border-radius: 10px; padding: 8px 12px; }
+  .keys b { color: #ffd24a; }
+
+  /* menu background poster */
+  #menuBg {
+    position: absolute; inset: 0; z-index: 1;
+    background: #0b0f18 center/cover no-repeat;
+    opacity: .5;
+  }
+  #menuBg::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(6,8,14,.35) 0%, rgba(6,8,14,.15) 40%, rgba(6,8,14,.88) 100%);
+  }
+  #menu .panel { background: linear-gradient(180deg, rgba(30,38,54,.92), rgba(12,16,26,.94)); position: relative; z-index: 2; }
+  .credit { font-size: 11px; color: #7d8ca6; margin-top: 14px; line-height: 1.5; }
+
+  /* touch controls */
+  #touch { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+  #stickZone { position: absolute; left: 0; bottom: 0; width: 46%; height: 62%; pointer-events: auto; }
+  #stickBase {
+    position: absolute; width: 118px; height: 118px; border-radius: 50%;
+    background: rgba(255,255,255,.10); border: 2px solid rgba(255,255,255,.28);
+    display: none; transform: translate(-50%,-50%);
+  }
+  #stickNub {
+    position: absolute; width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,210,74,.75); border: 2px solid #7a4a00;
+    display: none; transform: translate(-50%,-50%);
+  }
+  .tbtn {
+    position: absolute; pointer-events: auto;
+    width: 78px; height: 78px; border-radius: 50%;
+    background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.35);
+    color: #fff; font-weight: 900; font-size: 13px;
+    display: none; align-items: center; justify-content: center;
+  }
+  .tbtn:active { background: rgba(255,210,74,.5); }
+  #btnJump { right: 22px; bottom: 30px; }
+  #btnSnus { right: 112px; bottom: 96px; width: 66px; height: 66px; font-size: 11px; }
+  body.touch #stickBase, body.touch #stickNub, body.touch .tbtn { display: flex; }
+  body.touch #stickBase, body.touch #stickNub { display: block; }
+
+  #fps { position: absolute; bottom: 6px; right: 8px; font-size: 10px; color: rgba(255,255,255,.35); z-index: 40; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-box" id="hudLeft">
+      <span id="hudName">LEIF</span><br>
+      <span class="lives" id="hudLives"></span>
+    </div>
+    <div class="hud-box" id="hudMid"><small>TID KVAR</small><span id="hudTime">0:00</span></div>
+    <div class="hud-box" id="hudRight">
+      <span class="coins">🪙 <span id="hudCoins">0/0</span></span><br>
+      <span class="score">Poäng: <span id="hudScore">0</span></span>
+    </div>
+    <div class="hud-box" id="snusHud">
+      <span class="can">🥫</span> <span id="hudSnus">0</span>
+      <span class="hint">[E] snusa = speedboost</span>
+    </div>
+    <div id="boostBar"><div id="boostFill"></div></div>
+    <div id="toast"><span class="who"></span><span class="txt"></span></div>
+    <div id="banner"></div>
+    <div id="damageFlash"></div>
+  </div>
+
+  <!-- touch -->
+  <div id="touch" class="hidden">
+    <div id="stickZone"></div>
+    <div id="stickBase"></div>
+    <div id="stickNub"></div>
+    <div class="tbtn" id="btnJump">HOPPA</div>
+    <div class="tbtn" id="btnSnus">SNUSA</div>
+  </div>
+
+  <!-- MENU -->
+  <div class="overlay hidden" id="menu" style="background:transparent; backdrop-filter:none;">
+    <div id="menuBg"></div>
+    <div class="panel">
+      <h1>LEIF &amp; BILLY 3D</h1>
+      <div class="sub">SKULDBREVSJAKTEN I SÖRBÄCKEN · ett fantribut i 3D</div>
+      <div id="charCards">
+        <div class="charCard sel" data-char="leif">
+          <div class="pname">LEIF ÖHMAN</div>
+          <div class="ptag">Storebror. Lugn, stark och övertygad om att han alltid har rätt.</div>
+          <div class="stat"><span>FART</span><div class="bar"><i style="width:62%"></i></div></div>
+          <div class="stat"><span>STYRKA</span><div class="bar"><i style="width:90%"></i></div></div>
+          <div class="stat"><span>HOPP</span><div class="bar"><i style="width:60%"></i></div></div>
+        </div>
+        <div class="charCard" data-char="billy">
+          <div class="pname">BILLY ÖHMAN</div>
+          <div class="ptag">Lillebror. Snabb, nervös och aldrig utan sin snusdosa.</div>
+          <div class="stat"><span>FART</span><div class="bar"><i style="width:92%"></i></div></div>
+          <div class="stat"><span>STYRKA</span><div class="bar"><i style="width:55%"></i></div></div>
+          <div class="stat"><span>HOPP</span><div class="bar"><i style="width:88%"></i></div></div>
+        </div>
+      </div>
+      <button class="btn" id="btnPlay">▶ SPELA</button>
+      <button class="btn ghost small" id="btnInfo">ℹ OM SERIEN</button>
+      <button class="btn ghost small" id="btnHelp">⌨ KONTROLLER</button>
+      <div class="credit" id="menuCredit"></div>
+    </div>
+  </div>
+
+  <!-- INFO -->
+  <div class="overlay hidden" id="info">
+    <div class="panel">
+      <h2>📺 OM SERIEN LEIF &amp; BILLY</h2>
+      <p><b>Leif &amp; Billy</b> är en svensk relationskomedi i sketchform skapad av <b>Klas Eriksson</b> och <b>Alfred Svensson</b>, som också spelar bröderna <b>Leif</b> och <b>Billy Öhman</b>. Serien hade premiär på <b>SVT 2017</b> och utspelar sig i den fiktiva norrlandsbyn <b>Sörbäcken</b>, där de ständigt panka bröderna jagar nya sätt att tjäna pengar – med Kronofogden ständigt i hasorna.</p>
+      <p>🏆 Vann <b>Kristallen</b> för Årets humorprogram <b>2020</b> och <b>2023</b>.<br>
+      🎬 <b>7 säsonger</b> och <b>50 avsnitt</b> (2017–2023), producerad av Jarowskij för SVT.<br>
+      👥 I rollistan finns bl.a. Fredrik Hallgren som <b>Tony</b> och Albin Grenholm som <b>Dunken</b>.<br>
+      🌲 Bland ikoniska inslag: husvagnen, raggar-Volvon, snuset, älgen och grannfejden.</p>
+      <p style="font-size:13px;color:#9fb2d0">Detta spel är ett <b>oficiellt fantribut</b>. Alla 3D-modeller, texter och all musik är originalskapade för spelet – inget officiellt bild- eller ljudmaterial från SVT används.</p>
+      <button class="btn ghost" id="btnInfoBack">← TILLBAKA</button>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="overlay hidden" id="help">
+    <div class="panel">
+      <h2>⌨ KONTROLLER</h2>
+      <div class="keys">
+        <div><b>W A S D / pilar</b> – spring runt</div>
+        <div><b>MUS/DRAG</b> – vrid kameran</div>
+        <div><b>MELLANSLAG</b> – hoppa</div>
+        <div><b>SKIFT</b> – spurta (uthållighet)</div>
+        <div><b>E</b> – snusa (speedboost)</div>
+        <div><b>P / ESC</b> – paus</div>
+      </div>
+      <p>Samla alla <b style="color:#ffd24a">gulkronor</b> innan tiden rinner ut. Undvik <b>Kronofogden</b> – ser han dig jagar han dig! Plocka <b style="color:#ff9d4a">snusdosor</b> för boost. Akta dig för älgen…</p>
+      <p style="font-size:13px;color:#9fb2d0">På mobil: virtuell joystick vänster, knappar höger, dra på högra halvan för att vrida kameran.</p>
+      <button class="btn ghost" id="btnHelpBack">← TILLBAKA</button>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div class="overlay hidden" id="pause">
+    <div class="panel">
+      <h2>⏸ PAUS</h2>
+      <p>Bröderna vilar benen. Kronofogden gör inte det.</p>
+      <button class="btn" id="btnResume">▶ FORTSÄTT</button>
+      <button class="btn ghost small" id="btnRestart">↻ STARTA OM</button>
+      <button class="btn ghost small" id="btnMenu">🏠 MENY</button>
+    </div>
+  </div>
+
+  <!-- LEVEL CLEAR -->
+  <div class="overlay hidden" id="clear">
+    <div class="panel">
+      <h2 id="clearTitle">NIVÅ KLAR!</h2>
+      <p id="clearText"></p>
+      <button class="btn" id="btnNext">➜ NÄSTA NIVÅ</button>
+    </div>
+  </div>
+
+  <!-- GAME OVER / WIN -->
+  <div class="overlay hidden" id="over">
+    <div class="panel">
+      <h2 id="overTitle">GAME OVER</h2>
+      <p id="overText"></p>
+      <p id="overScore" style="font-size:22px;color:#ffd24a;font-weight:900"></p>
+      <button class="btn" id="btnAgain">↻ SPELA IGEN</button>
+      <button class="btn ghost small" id="btnOverMenu">🏠 MENY</button>
+    </div>
+  </div>
+
+  <div id="fps"></div>
+</div>
+
+<script type="module" src="./js/game.js"></script>
+</body>
+</html>
